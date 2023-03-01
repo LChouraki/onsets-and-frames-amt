@@ -1,0 +1,8 @@
+Flask
+numpy
+PyAudio
+librosa
+matplotlib
+torch
+python-rtmidi
+numba
