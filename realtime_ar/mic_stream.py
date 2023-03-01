@@ -25,7 +25,7 @@ class MicrophoneStream(object):
             format=pyaudio.paInt16,
             channels=self._channels, rate=self._rate,
             input=True, frames_per_buffer=self._chunk,
-            stream_callback=self._fill_buffer, input_device_index=3
+            stream_callback=self._fill_buffer, input_device_index=4
         )        
         self.closed = False
         return self

@@ -19,6 +19,7 @@ CHANNELS = pyaudio.PyAudio().get_default_input_device_info()['maxInputChannels']
 RATE = SAMPLE_RATE
 
 
+
 def get_buffer_and_transcribe(model, q):
     midiout = rtmidi.MidiOut()
     available_ports = midiout.get_ports()
@@ -28,6 +29,10 @@ def get_buffer_and_transcribe(model, q):
     else:
         midiout.open_virtual_port("My virtual output")
 
+    start_flag = False
+    pitches = []
+    intervals = []
+    curr_frame = 0
     transcriber = OnlineTranscriber(model)
     with MicrophoneStream(RATE, CHUNK, CHANNELS) as stream:
         audio_generator = stream.generator()
@@ -35,22 +40,35 @@ def get_buffer_and_transcribe(model, q):
         while True:
             data = stream._buff.get()
             decoded = np.frombuffer(data, dtype=np.int16) / 32768.0
-            if CHANNELS > 1:
-                decoded = decoded.reshape(CHANNELS, -1)
-                decoded = np.mean(decoded, axis=0)
-            frame_output = transcriber.inference(decoded)
 
-            on_pitch += frame_output[1]
-            for pitch in frame_output[1]:
-                note_on = [0x90, pitch + MIN_MIDI, 64]
-                midiout.send_message(note_on)
-            for pitch in frame_output[2]:
-                note_off = [0x90, pitch + MIN_MIDI, 0]
-                pitch_count = on_pitch.count(pitch)
-                [midiout.send_message(note_off) for i in range(pitch_count)]
+            if np.max(abs(decoded)) > 0.1 and not start_flag:
+                print("START")
+                start_flag = True
+            if start_flag:
+                if CHANNELS > 1:
+                    decoded = decoded.reshape(CHANNELS, -1)
+                    decoded = np.mean(decoded, axis=0)
+                frame_output = transcriber.inference(decoded)
 
-            on_pitch = [x for x in on_pitch if x not in frame_output[2]]
-            q.put(frame_output[0])
+                on_pitch += frame_output[1]
+                for pitch in frame_output[1]:
+                    note_on = [0x90, pitch + MIN_MIDI, 64]
+                    pitches.append(pitch + MIN_MIDI)
+                    intervals.append([curr_frame, curr_frame])
+                    midiout.send_message(note_on)
+                for pitch in frame_output[2]:
+                    note_off = [0x90, pitch + MIN_MIDI, 0]
+                    pitch_count = on_pitch.count(pitch)
+                    [midiout.send_message(note_off) for i in range(pitch_count)]
+                    pitch_idx = pitches[::-1].index(pitch + MIN_MIDI)
+                    intervals[len(intervals) - 1 - pitch_idx][1] = curr_frame
+                curr_frame += 0.032
+                on_pitch = [x for x in on_pitch if x not in frame_output[2]]
+                q.put(frame_output[0])
+                if curr_frame > 10:
+                    print("SAVING")
+                    start_flag = False
+                    save_midi('./test.mid', pitches, intervals, [100] * len(pitches))
 
 
 def draw_plot(q):
@@ -107,3 +125,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args.model_file)
+

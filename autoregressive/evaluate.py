@@ -32,8 +32,8 @@ def evaluate(data, model, onset_threshold=0.5, frame_threshold=0.5, save_path=No
         pred_onsets = pred_data >= 3
         pred_frames = pred_data > 1
 
-        absl_label = label['absl_label']
-        p_ref_absl, i_ref_absl = absl_label[:, 2], absl_label[:, :2]  # extract_notes(label['onset'], label['frame'])
+        # absl_label = label['absl_label']
+        # p_ref_absl, i_ref_absl = absl_label[:, 2], absl_label[:, :2]  # extract_notes(label['onset'], label['frame'])
         p_est, i_est = extract_notes(pred_onsets, pred_frames)
         p_ref, i_ref = extract_notes(label['onset'], label['frame'])
 
@@ -42,8 +42,8 @@ def evaluate(data, model, onset_threshold=0.5, frame_threshold=0.5, save_path=No
 
         scaling = HOP_LENGTH / SAMPLE_RATE
 
-        # i_ref = (i_ref * scaling).reshape(-1, 2)
-        p_ref_absl = np.array([midi_to_hz(MIN_MIDI + midi) for midi in p_ref_absl])
+        i_ref = (i_ref * scaling).reshape(-1, 2)
+        p_ref = np.array([midi_to_hz(MIN_MIDI + midi) for midi in p_ref])
         i_est = (i_est * scaling).reshape(-1, 2)
         p_est = np.array([midi_to_hz(MIN_MIDI + midi) for midi in p_est])
 
@@ -52,13 +52,13 @@ def evaluate(data, model, onset_threshold=0.5, frame_threshold=0.5, save_path=No
         t_est = t_est.astype(np.float64) * scaling
         f_est = [np.array([midi_to_hz(MIN_MIDI + midi) for midi in freqs]) for freqs in f_est]
 
-        p, r, f, o = evaluate_notes(i_ref_absl, p_ref_absl, i_est, p_est, offset_ratio=None)
+        p, r, f, o = evaluate_notes(i_ref, p_ref, i_est, p_est, offset_ratio=None)
         metrics['metric/note/precision'].append(p)
         metrics['metric/note/recall'].append(r)
         metrics['metric/note/f1'].append(f)
         metrics['metric/note/overlap'].append(o)
 
-        p, r, f, o = evaluate_notes(i_ref_absl, p_ref_absl, i_est, p_est)
+        p, r, f, o = evaluate_notes(i_ref, p_ref, i_est, p_est)
         metrics['metric/note-with-offsets/precision'].append(p)
         metrics['metric/note-with-offsets/recall'].append(r)
         metrics['metric/note-with-offsets/f1'].append(f)

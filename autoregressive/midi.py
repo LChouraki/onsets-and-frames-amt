@@ -78,7 +78,7 @@ def save_midi(path, pitches, intervals, velocities):
         velocity = int(event['velocity'] * 127)
         if velocity > 127:
             velocity = 127
-        pitch = int(round(hz_to_midi(event['pitch'])))
+        pitch = int(event['pitch'])
         track.append(Message('note_' + event['type'], note=pitch, velocity=velocity, time=current_tick - last_tick))
         last_tick = current_tick
 

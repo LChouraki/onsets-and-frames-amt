@@ -25,6 +25,7 @@ def main():
     resume_iteration = None
     checkpoint_interval = 2000
 
+    train_on = "MAESTRO"
     batch_size = 8
     sequence_length = 327680 // 2
     model_complexity = 48
@@ -57,8 +58,12 @@ def main():
         train_groups = list(all_years - {str(leave_one_out)})
         validation_groups = [str(leave_one_out)]
 
-    dataset = GuitarSet(groups=train_groups, sequence_length=sequence_length)
-    validation_dataset = GuitarSet(groups=validation_groups, sequence_length=validation_length)
+    if train_on == 'MAESTRO':
+        dataset = MAESTRO(groups=train_groups, sequence_length=sequence_length)
+        validation_dataset = MAESTRO(groups=validation_groups, sequence_length=sequence_length)
+    else:
+        dataset = GuitarSet(groups=train_groups, sequence_length=sequence_length)
+        validation_dataset = GuitarSet(groups=validation_groups, sequence_length=validation_length)
 
     loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
