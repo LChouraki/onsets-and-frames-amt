@@ -9,11 +9,11 @@ RATE = 44100
 
 ### this code is from https://blog.naver.com/chandong83/221149828690
 class MicrophoneStream(object):
-    def __init__(self, rate, chunk, channels):
+    def __init__(self, rate, chunk, device_idx, channels):
         self._rate = rate
         self._chunk = chunk
         self._channels = channels
-
+        self._device_idx = device_idx
         self._buff = queue.Queue()
         self.closed = True
 
@@ -25,7 +25,7 @@ class MicrophoneStream(object):
             format=pyaudio.paInt16,
             channels=self._channels, rate=self._rate,
             input=True, frames_per_buffer=self._chunk,
-            stream_callback=self._fill_buffer, input_device_index=4
+            stream_callback=self._fill_buffer, input_device_index=self._device_idx
         )        
         self.closed = False
         return self

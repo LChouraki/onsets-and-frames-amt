@@ -17,19 +17,19 @@ class ConvStack(nn.Module):
         # input is batch_size * 1 channel * frames * input_features
         self.cnn = nn.Sequential(
             # layer 0
-            nn.Conv2d(1, output_features // 16, (3, 3), padding=1),
+            nn.Conv2d(1, output_features // 16, (3, 3), padding=(0, 1)),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 1
             nn.Conv2d(output_features // 16, output_features //
-                      16, (3, 3), padding=1),
+                      16, (3, 3), padding=(0, 1)),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 2
             nn.MaxPool2d((1, 2)),
             nn.Dropout(0.25),
             nn.Conv2d(output_features // 16,
-                      output_features // 8, (3, 3), padding=1),
+                      output_features // 8, (3, 3), padding=(0, 1)),
             nn.BatchNorm2d(output_features // 8),
             nn.ReLU(),
             # layer 3
@@ -88,7 +88,7 @@ class AR_Transcriber(nn.Module):
         else:
             h, c = self.init_lstm_hidden(mel.shape[0], mel.device)
             prev_out = torch.zeros((mel.shape[0], 1, self.output_size * 2)).to(mel.device)
-            total_result = torch.zeros((mel.shape[0], mel.shape[1], self.output_size, 5)).to(mel.device)
+            total_result = torch.zeros((mel.shape[0], acoustic_out.shape[1], self.output_size, 5)).to(mel.device)
             for i in range(acoustic_out.shape[1]):
                 current_data = torch.cat((acoustic_out[:,i:i+1,:], prev_out), dim=2)
                 current_out, (h, c) = self.language_model(current_data, (h, c))

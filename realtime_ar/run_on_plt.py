@@ -30,18 +30,19 @@ def get_buffer_and_transcribe(model, q):
         midiout.open_virtual_port("My virtual output")
 
     start_flag = False
+    save = True
     pitches = []
     intervals = []
     curr_frame = 0
     transcriber = OnlineTranscriber(model)
-    with MicrophoneStream(RATE, CHUNK, CHANNELS) as stream:
+    with MicrophoneStream(RATE, CHUNK, 2, CHANNELS) as stream:
         audio_generator = stream.generator()
         on_pitch = []
         while True:
             data = stream._buff.get()
             decoded = np.frombuffer(data, dtype=np.int16) / 32768.0
 
-            if np.max(abs(decoded)) > 0.1 and not start_flag:
+            if np.max(abs(decoded)) > 1e-5 and not start_flag:
                 print("START")
                 start_flag = True
             if start_flag:
@@ -60,14 +61,15 @@ def get_buffer_and_transcribe(model, q):
                     note_off = [0x90, pitch + MIN_MIDI, 0]
                     pitch_count = on_pitch.count(pitch)
                     [midiout.send_message(note_off) for i in range(pitch_count)]
-                    pitch_idx = pitches[::-1].index(pitch + MIN_MIDI)
-                    intervals[len(intervals) - 1 - pitch_idx][1] = curr_frame
+                    if (pitch + MIN_MIDI) in pitches:
+                        pitch_idx = pitches[::-1].index(pitch + MIN_MIDI)
+                        intervals[len(intervals) - 1 - pitch_idx][1] = curr_frame
                 curr_frame += 0.032
                 on_pitch = [x for x in on_pitch if x not in frame_output[2]]
                 q.put(frame_output[0])
-                if curr_frame > 10:
+                if curr_frame > 10 and save:
                     print("SAVING")
-                    start_flag = False
+                    save = False
                     save_midi('./test.mid', pitches, intervals, [100] * len(pitches))
 
 
@@ -121,7 +123,7 @@ def main(model_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_file', type=str, default='../model-26000.pt')
+    parser.add_argument('--model_file', type=str, default='../model-16000.pt')
     args = parser.parse_args()
 
     main(args.model_file)
