@@ -10,7 +10,6 @@ import argparse
 import queue
 from realtime_ar.mic_stream import MicrophoneStream
 from threading import Thread
-from autoregressive import *
 from realtime_ar.transcribe import load_model, OnlineTranscriber
 
 CHUNK = 512

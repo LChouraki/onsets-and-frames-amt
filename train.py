@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 
 import numpy as np
-import torch.nn
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
 from torch.nn.utils import clip_grad_norm_
@@ -11,21 +10,27 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from autoregressive import *
-from autoregressive.evaluate import evaluate
-from dataset import GuitarSet
+from dataset import GuitarSet, MAESTRO
+from evaluate import evaluate
+from constants import *
+from autoregressive.models import AR_Transcriber
+from onsets_and_frames.transcriber import OnsetsAndFrames
+from utils import summary, cycle
 
 ex = Experiment('train_transcriber')
 
 
 def main():
-    logdir = 'runs/transcriber-ar-' + datetime.now().strftime('%y%m%d-%H%M%S')
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     iterations = 100000
     resume_iteration = None
-    checkpoint_interval = 2000
+    checkpoint_interval = 5
 
-    train_on = ""
+    train_on = 'GuitarSet'
+    train_with = 'onsets'
+    logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
+
     batch_size = 8
     sequence_length = 327680 // 2
     model_complexity = 48
@@ -44,9 +49,9 @@ def main():
     clip_gradient_norm = 3
 
     validation_length = None
-    validation_interval = 2000
+    validation_interval = 5
 
-    ex.observers.append(FileStorageObserver.create(logdir))
+    ex.observers.append(FileStorageObserver(logdir))
 
     os.makedirs(logdir, exist_ok=True)
     writer = SummaryWriter(logdir)
@@ -68,7 +73,9 @@ def main():
     loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
     if resume_iteration is None:
-        model = AR_Transcriber(N_MELS, MAX_MIDI - MIN_MIDI + 1, model_complexity).to(device)
+        model = AR_Transcriber(N_MELS, MAX_MIDI - MIN_MIDI + 1, model_complexity).to(device) if train_with == "ar" \
+           else OnsetsAndFrames(N_MELS, MAX_MIDI - MIN_MIDI + 1, model_complexity).to(device)
+
         optimizer = torch.optim.Adam(model.parameters(), learning_rate)
         resume_iteration = 0
     else:
@@ -82,8 +89,9 @@ def main():
 
     loop = tqdm(range(resume_iteration + 1, iterations + 1))
     for i, batch in zip(loop, cycle(loader)):
-        predictions, loss = model.run_on_batch(batch['audio'], batch['label'], ar=True)
+        predictions, losses = model.run_on_batch(batch, train=True)
 
+        loss = sum(losses.values())
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -92,13 +100,17 @@ def main():
         if clip_gradient_norm:
             clip_grad_norm_(model.parameters(), clip_gradient_norm)
 
-        writer.add_scalar('loss', loss, global_step=i)
+        for key, value in {'loss': loss, **losses}.items():
+            writer.add_scalar(key, value.item(), global_step=i)
 
         if i % validation_interval == 0:
             model.eval()
             with torch.no_grad():
                 scores = evaluate(validation_dataset, model)
-                print("Note: %s, Offsets: %s, Frame: %s" % (np.mean(scores['metric/note/f1']), np.mean(scores['metric/note-with-offsets/f1']), np.mean(scores['metric/frame/f1'])))
+                print("Note: %s, Offsets: %s, Frame: %s" %
+                      (np.mean(scores['metric/note/f1']),
+                       np.mean(scores['metric/note-with-offsets/f1']),
+                       np.mean(scores['metric/frame/f1'])))
                 for key, value in scores.items():
                     writer.add_scalar('validation/' + key.replace(' ', '_'), np.mean(value), global_step=i)
             model.train()

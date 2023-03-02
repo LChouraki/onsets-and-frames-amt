@@ -6,7 +6,6 @@ import numpy as np
 from threading import Thread
 import queue
 import rtmidi
-from autoregressive import *
 
 import logging
 log = logging.getLogger('werkzeug')

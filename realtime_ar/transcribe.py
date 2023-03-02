@@ -1,19 +1,6 @@
-from collections import defaultdict
-from pathlib import Path
-import argparse
-import tempfile
-import shutil
-import subprocess
-import math
 import torch
 import torch as th
-import torch.nn.functional as F
 import numpy as np
-import librosa
-
-from autoregressive import *
-from time import time
-
 
 
 class OnlineTranscriber:

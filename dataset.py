@@ -10,7 +10,7 @@ import soundfile
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from onsets_and_frames.constants import *
+from constants import *
 from onsets_and_frames.midi import parse_midi
 
 
@@ -191,7 +191,7 @@ class MAPS(PianoRollAudioDataset):
 
 
 class GuitarSet(PianoRollAudioDataset):
-    def __init__(self, path='/data/reach/GuitarSet', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
+    def __init__(self, path='data/GuitarSet', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
         super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device)
 
     @classmethod

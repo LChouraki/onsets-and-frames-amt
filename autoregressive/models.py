@@ -1,14 +1,12 @@
-
-import torch
 import torch.nn.functional as F
-from torch.nn import CrossEntropyLoss
 from torch import nn
 import random
 
-from .mel import melspectrogram
-from .constants import *
+from mel import melspectrogram
+from constants import *
 
 """ Initial code was from https://github.com/jongwook/onsets-and-frames """
+
 
 class ConvStack(nn.Module):
     def __init__(self, input_features, output_features):
@@ -17,19 +15,19 @@ class ConvStack(nn.Module):
         # input is batch_size * 1 channel * frames * input_features
         self.cnn = nn.Sequential(
             # layer 0
-            nn.Conv2d(1, output_features // 16, (3, 3), padding=(0, 1)),
+            nn.Conv2d(1, output_features // 16, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 1
             nn.Conv2d(output_features // 16, output_features //
-                      16, (3, 3), padding=(0, 1)),
+                      16, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 2
             nn.MaxPool2d((1, 2)),
             nn.Dropout(0.25),
             nn.Conv2d(output_features // 16,
-                      output_features // 8, (3, 3), padding=(0, 1)),
+                      output_features // 8, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 8),
             nn.ReLU(),
             # layer 3
@@ -77,9 +75,9 @@ class AR_Transcriber(nn.Module):
 
         self.class_embedding = nn.Embedding(5,2)
 
-    def forward(self, mel, gt_label=False): 
+    def forward(self, mel, gt_label):
         acoustic_out = self.acoustic_model(mel)
-        if not isinstance(gt_label, bool) and random.random() < 0.7:
+        if gt_label is not None and random.random() < 0.7:
             prev_gt = torch.cat((torch.zeros((gt_label.shape[0], 1, gt_label.shape[2]), device=mel.device, dtype=torch.long), gt_label[:, :-1, :].type(torch.LongTensor).to(mel.device)), dim=1)
             concated_data = torch.cat((acoustic_out,
                                        self.class_embedding(prev_gt).view(mel.shape[0], -1, self.output_size * 2)), dim=2)
@@ -100,13 +98,18 @@ class AR_Transcriber(nn.Module):
                 total_result[:, i:i + 1, :] = current_out
         return total_result
 
-    def run_on_batch(self, audio_label, labels, ar=False):
-        mel = melspectrogram(audio_label.reshape(-1, audio_label.shape[-1])[:, :-1]).transpose(-1, -2)
+    def run_on_batch(self, labels, train=False):
+        mel = melspectrogram(labels['audio'].reshape(-1, labels['audio'].shape[-1])[:, :-1]).transpose(-1, -2)
 
-        result = self(mel, labels if ar else False).squeeze()
+        result = self(mel, labels['label'] if train else None).squeeze()
+        loss = {'total_loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long))}
 
-        loss = F.cross_entropy(result.movedim(-1, 1), labels.to(torch.long))
-        return result, loss
+        result = torch.softmax(result, dim=-1)
+        result = torch.argmax(result, dim=-1)
+
+        predictions = {'onset': result >= 3,
+                       'frame': result > 1}
+        return predictions, loss
 
     def lm_model_step(self, acoustic_out, hidden, prev_out):
         '''

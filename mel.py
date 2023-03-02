@@ -1,17 +1,16 @@
 import numpy as np
-import torch
 import torch.nn.functional as F
 from librosa.filters import mel
 from librosa.util import pad_center
 from scipy.signal import get_window
 from torch.autograd import Variable
 
-from .constants import *
+from constants import *
 
 
 class STFT(torch.nn.Module):
     """adapted from Prem Seetharaman's https://github.com/pseeth/pytorch-stft"""
-    def __init__(self, filter_length, hop_length, win_length=None, window='hann'):
+    def __init__(self, filter_length, hop_length, win_length=None, window='hann', padding=True):
         super(STFT, self).__init__()
         if win_length is None:
             win_length = filter_length
@@ -40,6 +39,7 @@ class STFT(torch.nn.Module):
             forward_basis *= fft_window
 
         self.register_buffer('forward_basis', forward_basis.float())
+        self.padding = padding
 
     def forward(self, input_data):
         num_batches = input_data.size(0)
@@ -47,12 +47,14 @@ class STFT(torch.nn.Module):
 
         # similar to librosa, reflect-pad the input
         input_data = input_data.view(num_batches, 1, num_samples)
-        input_data = input_data.unsqueeze(1)
-        input_data = F.pad(
-            input_data,
-            (int(self.filter_length / 2), int(self.filter_length / 2), 0, 0),
-            mode='reflect')
-        input_data = input_data.squeeze(1)
+
+        if self.padding:
+            input_data = input_data.unsqueeze(1)
+            input_data = F.pad(
+                input_data,
+                (int(self.filter_length), 0, 0, 0),
+                mode='reflect')
+            input_data = input_data.squeeze(1)
 
         forward_transform = F.conv1d(
             input_data,

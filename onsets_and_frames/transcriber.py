@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from .lstm import BiLSTM
-from .mel import melspectrogram
+from mel import melspectrogram
 
 
 class ConvStack(nn.Module):
@@ -93,7 +93,7 @@ class OnsetsAndFrames(nn.Module):
         # return onset_pred, offset_pred, activation_pred, frame_pred, velocity_pred
         return onset_pred, offset_pred, activation_pred, frame_pred
 
-    def run_on_batch(self, batch):
+    def run_on_batch(self, batch, train=False):
         audio_label = batch['audio']
         onset_label = batch['onset']
         offset_label = batch['offset']
@@ -110,12 +110,18 @@ class OnsetsAndFrames(nn.Module):
             # 'velocity': velocity_pred.reshape(*velocity_label.shape)
         }
 
+        if not train:
+            for key, value in predictions.items():
+                value.squeeze_(0).relu_()
+
         losses = {
             'loss/onset': F.binary_cross_entropy(predictions['onset'], onset_label),
             'loss/offset': F.binary_cross_entropy(predictions['offset'], offset_label),
             'loss/frame': F.binary_cross_entropy(predictions['frame'], frame_label),
             # 'loss/velocity': self.velocity_loss(predictions['velocity'], velocity_label, onset_label)
         }
+
+        losses['loss/total_loss'] = sum(losses.values())
 
         return predictions, losses
 
