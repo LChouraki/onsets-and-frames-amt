@@ -24,7 +24,7 @@ def evaluate(data, model, onset_threshold=0.5, frame_threshold=0.5, save_path=No
     for label in data:
         pred, losses = model.run_on_batch(label)
 
-        metrics['loss/eval'].append(sum(losses.values()))
+        metrics['loss/eval'].append(sum(losses.values()).item())
 
         for key, loss in losses.items():
             metrics[key].append(loss.item())
@@ -32,7 +32,6 @@ def evaluate(data, model, onset_threshold=0.5, frame_threshold=0.5, save_path=No
         for key, value in pred.items():
             value.squeeze_(0).relu_()
 
-        test = label['reonset'].numpy()
         p_ref, i_ref = extract_notes(label['onset'], label['frame'])
         p_est, i_est = extract_notes(pred['onset'], pred['frame'], onset_threshold, frame_threshold)
 

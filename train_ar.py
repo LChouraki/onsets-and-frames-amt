@@ -25,7 +25,7 @@ def main():
     resume_iteration = None
     checkpoint_interval = 2000
 
-    train_on = "MAESTRO"
+    train_on = ""
     batch_size = 8
     sequence_length = 327680 // 2
     model_complexity = 48
@@ -44,7 +44,7 @@ def main():
     clip_gradient_norm = 3
 
     validation_length = None
-    validation_interval = 3
+    validation_interval = 2000
 
     ex.observers.append(FileStorageObserver.create(logdir))
 

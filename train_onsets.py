@@ -21,7 +21,7 @@ def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     iterations = 500000
     resume_iteration = None
-    checkpoint_interval = 1000
+    checkpoint_interval = 2000
     train_on = 'GuitarSet'
 
     batch_size = 8
@@ -42,7 +42,7 @@ def main():
     clip_gradient_norm = 3
 
     validation_length = None
-    validation_interval = 5
+    validation_interval = 2000
 
     ex.observers.append(FileStorageObserver.create(logdir))
 
@@ -95,8 +95,7 @@ def main():
             model.eval()
             with torch.no_grad():
                 scores = evaluate(validation_dataset, model)
-                print("Note: %s, Offsets: %s, velocity: %s, Offsets and Velocity: %s, Frame: %s"
-                      % (np.mean(scores['metric/note/f1']), np.mean(scores['metric/note-with-offsets/f1']), np.mean(scores['metric/frame/f1'])))
+                print("Note: %s, Offsets: %s, Frame: %s" % (np.mean(scores['metric/note/f1']), np.mean(scores['metric/note-with-offsets/f1']), np.mean(scores['metric/frame/f1'])))
                 for key, value in scores.items():
                     writer.add_scalar('validation/' + key.replace(' ', '_'), np.mean(value), global_step=i)
             model.train()
