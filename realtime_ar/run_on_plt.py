@@ -29,60 +29,39 @@ def get_buffer_and_transcribe(model, q):
     else:
         midiout.open_virtual_port("My virtual output")
 
-    start_flag = True
-    save = True
-    pitches = []
-    intervals = []
-    curr_frame = 0
     transcriber = OnlineTranscriber(model)
-    with MicrophoneStream(RATE, CHUNK, 1, CHANNELS) as stream:
-        audio_generator = stream.generator()
+    with MicrophoneStream(RATE, CHUNK, 3, CHANNELS) as stream:
         on_pitch = []
         while True:
             data = stream._buff.get()
             decoded = np.frombuffer(data, dtype=np.int16) / 32768.0
 
-            '''if np.max(abs(decoded)) > 1e-5 and not start_flag:
-                print("START")
-                start_flag = True'''
-            #if start_flag:
             if CHANNELS > 1:
                 decoded = decoded.reshape(CHANNELS, -1)
                 decoded = np.mean(decoded, axis=0)
-            frame_output = transcriber.inference(decoded)
+            frame_output, onsets, offsets = transcriber.inference(decoded)
 
-            # print(frame_output)
-            on_pitch += frame_output[1]
-            for pitch in frame_output[1]:
+            for pitch in onsets:
                 note_on = [0x90, pitch + MIN_MIDI, 64]
-                #pitches.append(pitch + MIN_MIDI)
-                #intervals.append([curr_frame, curr_frame])
                 midiout.send_message(note_on)
-            for pitch in frame_output[2]:
+
+            for pitch in offsets:
                 note_off = [0x90, pitch + MIN_MIDI, 0]
-                pitch_count = on_pitch.count(pitch)
-                [midiout.send_message(note_off) for i in range(pitch_count)]
-                '''if (pitch + MIN_MIDI) in pitches:
-                    pitch_idx = pitches[::-1].index(pitch + MIN_MIDI)
-                    intervals[len(intervals) - 1 - pitch_idx][1] = curr_frame'''
-            #curr_frame += 0.032
-            on_pitch = [x for x in on_pitch if x not in frame_output[2]]
-            q.put(frame_output[0])
-            '''if curr_frame > 10 and save:
-                print("SAVING")
-                save = False
-                save_midi('./test.mid', pitches, intervals, [100] * len(pitches))'''
+                midiout.send_message(note_off)
+
+            q.put(frame_output)
 
 
 def draw_plot(q):
-    piano_roll = np.zeros((MAX_MIDI - MIN_MIDI + 1, 64 ))
-    piano_roll[30, 0] = 1 # for test
+    piano_roll = np.zeros((MAX_MIDI - MIN_MIDI + 1, 64))
+    piano_roll[30, 0] = 1  # for test
 
     plt.ion()
     fig, ax = plt.subplots()
 
     plt.show(block=False)
-    img = ax.imshow(piano_roll)
+    img = ax.imshow(piano_roll, cmap=plt.colormaps['gnuplot2'])
+    #ax.set_facecolor((1, 1, 1))
     ax_background = fig.canvas.copy_from_bbox(ax.bbox)
     ax.invert_yaxis()
     fig.canvas.draw()
@@ -95,13 +74,11 @@ def draw_plot(q):
         if num_updated == 0:
             continue
         new_roll = np.zeros_like(piano_roll)
-        if num_updated == 1:
-            new_roll[:, :-1] = piano_roll[:,1:]
-            new_roll[:, -1] = updated_frames[0]
-        else:
-            new_roll[:, :-num_updated] = piano_roll[:,num_updated:]
-            # new_roll[:, -num_updated] = frame_output
-            new_roll[:, -num_updated:] = np.asarray(updated_frames).T
+
+        for i in range(num_updated):
+            new_roll[:, :-1] = piano_roll[:, 1:]
+            new_roll[:, -1] = updated_frames[i] + 0.9 * new_roll[:, -2]
+
         piano_roll = new_roll
         fig.canvas.restore_region(ax_background)
         img.set_data(piano_roll)
@@ -110,6 +87,7 @@ def draw_plot(q):
         fig.canvas.flush_events()
         time.sleep(0.02)
 
+
 def main(model_file):
     model = load_model(model_file)
     
@@ -117,14 +95,13 @@ def main(model_file):
     print("* recording")
     t1 = Thread(target=get_buffer_and_transcribe, name=get_buffer_and_transcribe, args=(model, q))
     t1.start()
-    # print('model is running')
+
     draw_plot(q)
-    # print("* done recording")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_file', type=str, default='../model-10000.pt')
+    parser.add_argument('--model_file', type=str, default='../model-3cnn.pt')
     args = parser.parse_args()
 
     main(args.model_file)

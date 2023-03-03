@@ -10,10 +10,10 @@ HOPS_IN_OFFSET = OFFSET_LENGTH // HOP_LENGTH
 MIN_MIDI = 33
 MAX_MIDI = 84
 
-N_STATE = 4
+N_STATE = 4 # change for 2cnn
 N_MELS = 229
 MEL_FMIN = 30
 MEL_FMAX = SAMPLE_RATE // 2
-WINDOW_LENGTH = 2048
+WINDOW_LENGTH = 1024
 
 DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'

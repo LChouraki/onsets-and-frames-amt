@@ -15,19 +15,19 @@ class ConvStack(nn.Module):
         # input is batch_size * 1 channel * frames * input_features
         self.cnn = nn.Sequential(
             # layer 0
-            nn.Conv2d(1, output_features // 16, (3, 3), padding=3),
+            nn.Conv2d(1, output_features // 16, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
-            # layer 1
+            # layer 1  # change for 2cnn
             nn.Conv2d(output_features // 16, output_features //
-                      16, (3, 3), padding=(0, 1)),
+                      16, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 2
             nn.MaxPool2d((1, 2)),
             nn.Dropout(0.25),
             nn.Conv2d(output_features // 16,
-                      output_features // 8, (3, 3), padding=(0, 0)),
+                      output_features // 8, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 8),
             nn.ReLU(),
             # layer 3
