@@ -6,8 +6,9 @@ import numpy as np
 from threading import Thread
 import queue
 import rtmidi
-
 import logging
+from constants import *
+
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 print('http://127.0.0.1:5000/')
@@ -20,11 +21,12 @@ Q = queue.Queue()
 def home():
     # args = Args()
     # model = load_model(args)
-    model = load_model('../model-26000.pt')
+    model = load_model('../model-10000.pt')
     global Q
     t1 = Thread(target=get_buffer_and_transcribe, name=get_buffer_and_transcribe, args=(model, Q))
     t1.start()
     return render_template('home.html')
+
 
 @app.route('/_amt', methods= ['GET', 'POST'])
 def amt():
@@ -36,6 +38,7 @@ def amt():
         onsets += rst[0]
         offsets += rst[1]
     return jsonify(on=onsets, off=offsets)
+
 
 def get_buffer_and_transcribe(model, q):
     CHUNK = 512
@@ -52,7 +55,7 @@ def get_buffer_and_transcribe(model, q):
         midiout.open_virtual_port("My virtual output")
 
     transcriber = OnlineTranscriber(model, return_roll=False)
-    with MicrophoneStream(RATE, CHUNK, CHANNELS) as stream:
+    with MicrophoneStream(RATE, CHUNK, 1, CHANNELS) as stream:
         audio_generator = stream.generator()
         print("* recording")
         on_pitch = []
@@ -77,6 +80,7 @@ def get_buffer_and_transcribe(model, q):
             # print(sum(frame_output))
         stream.closed = True
     print("* done recording")
+
 
 if __name__ == '__main__':
     # for i in range(0, p.get_device_count()):

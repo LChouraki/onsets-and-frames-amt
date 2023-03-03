@@ -49,7 +49,7 @@ class PianoRollAudioDataset(Dataset):
             result['label'] = data['label'].to(self.device)
             result['absl_label'] = data['absl_label'].to(self.device)
         result['audio'] = result['audio'].float().div_(32768.0)
-        result['onset'] = (result['label'] >= 3).float()
+        result['onset'] = (result['label'] == 3).float()
         result['offset'] = (result['label'] == 1).float()
         result['frame'] = (result['label'] > 1).float()
 
@@ -115,10 +115,7 @@ class PianoRollAudioDataset(Dataset):
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
             f = int(note) - MIN_MIDI
-            if label[left, f] != 0:
-                label[left:onset_right, f] = 4
-            else:
-                label[left:onset_right, f] = 3
+            label[left:onset_right, f] = 3
             label[onset_right:frame_right, f] = 2
             label[frame_right:offset_right, f] = 1
 

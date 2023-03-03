@@ -1,20 +1,22 @@
 import torch
 import torch as th
 import numpy as np
+from constants import *
+from mel import melspectrogram
 
 
 class OnlineTranscriber:
     def __init__(self, model, return_roll=True):
         self.model = model
         self.model.eval()
-        for i in (0, 3, 8):
+        for i in (0, 5):
             self.model.acoustic_model.cnn[i].padding = (0, 1)
         '''for i in (1, 4, 9):
             self.model.acoustic_model.cnn[i]'''
         # self.model.melspectrogram = MelSpectrogram(
         #     N_MELS, SAMPLE_RATE, WINDOW_LENGTH, HOP_LENGTH, mel_fmin=MEL_FMIN, mel_fmax=MEL_FMAX)
         melspectrogram.stft.padding = False
-        self.audio_buffer = th.zeros((1, WINDOW_LENGTH + 6 * HOP_LENGTH)).to(th.float)
+        self.audio_buffer = th.zeros((1, WINDOW_LENGTH + 4 * HOP_LENGTH)).to(th.float)
         self.mel_buffer = melspectrogram(self.audio_buffer)
         #self.mel_buffer = torch.concat((self.mel_buffer, torch.zeros((1, N_MELS, 3))), dim=2)
         self.acoustic_layer_outputs = self.init_acoustic_layer(self.mel_buffer)
@@ -39,8 +41,8 @@ class OnlineTranscriber:
         self.audio_buffer = new_buffer
 
     def update_mel_buffer(self):
-        self.mel_buffer[:, :, :6] = self.mel_buffer[:, :, 1:7]
-        self.mel_buffer[:, :, 6:] = melspectrogram(self.audio_buffer[:, -2048:])
+        self.mel_buffer[:, :, :-1] = self.mel_buffer[:, :, 1:]
+        self.mel_buffer[:, :, -1:] = melspectrogram(self.audio_buffer[:, -2048:])
 
     def init_acoustic_layer(self, input_mel):
         x = input_mel.transpose(-1, -2).unsqueeze(1)
@@ -56,15 +58,18 @@ class OnlineTranscriber:
         layers = self.model.acoustic_model.cnn
         for i in range(3):
             x = layers[i](x)
-        self.acoustic_layer_outputs[0][:, :, :-1, :] = self.acoustic_layer_outputs[0][:,:,1:,:]
+        self.acoustic_layer_outputs[0][:, :, :-1, :] = self.acoustic_layer_outputs[0][:, :, 1:, :]
         self.acoustic_layer_outputs[0][:, :, -1:, :] = x
+        '''
         x = self.acoustic_layer_outputs[0][:, :, -3:, :]
+        
         for i in range(3, 8):
             x = layers[i](x)
         self.acoustic_layer_outputs[1][:, :, :-1, :] = self.acoustic_layer_outputs[1][:,:,1:,:]
         self.acoustic_layer_outputs[1][:, :, -1:, :] = x
-        x = self.acoustic_layer_outputs[1]
-        for i in range(8, 13):
+        '''
+        x = self.acoustic_layer_outputs[0]
+        for i in range(3, 9):
             x = layers[i](x)
         x = x.transpose(1, 2).flatten(-2)
         return self.model.acoustic_model.fc(x)
@@ -88,7 +93,7 @@ class OnlineTranscriber:
             # time_list.append(time())
             if self.num_under_thr > self.patience:
                 if self.return_roll:
-                    return [0] * (MAX_MIDI - MIN_MIDI + 1)
+                    return [0] * (MAX_MIDI - MIN_MIDI + 1), [], []
                 else:
                     return [], []
             self.update_mel_buffer()
@@ -111,6 +116,7 @@ class OnlineTranscriber:
             if isinstance(off_pitches, int):
                 off_pitches = [off_pitches]
             # print('after', onset_pitches, off_pitches)
+            #print(out, onset_pitches, off_pitches)
             return out, onset_pitches, off_pitches
             # return (out==2) +  (out==4)
         else:  # return onset and offset only

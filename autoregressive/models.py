@@ -15,19 +15,19 @@ class ConvStack(nn.Module):
         # input is batch_size * 1 channel * frames * input_features
         self.cnn = nn.Sequential(
             # layer 0
-            nn.Conv2d(1, output_features // 16, (3, 3), padding=1),
+            nn.Conv2d(1, output_features // 16, (3, 3), padding=3),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 1
             nn.Conv2d(output_features // 16, output_features //
-                      16, (3, 3), padding=1),
+                      16, (3, 3), padding=(0, 1)),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 2
             nn.MaxPool2d((1, 2)),
             nn.Dropout(0.25),
             nn.Conv2d(output_features // 16,
-                      output_features // 8, (3, 3), padding=1),
+                      output_features // 8, (3, 3), padding=(0, 0)),
             nn.BatchNorm2d(output_features // 8),
             nn.ReLU(),
             # layer 3
@@ -70,28 +70,29 @@ class AR_Transcriber(nn.Module):
         self.language_model.flatten_parameters()
 
         self.language_post = nn.Sequential(
-            torch.nn.Linear(model_size_lstm, self.output_size * 5)
+            torch.nn.Linear(model_size_lstm, self.output_size * N_STATE)
         )
 
-        self.class_embedding = nn.Embedding(5,2)
+        self.class_embedding = nn.Embedding(N_STATE, 2)
 
     def forward(self, mel, gt_label):
         acoustic_out = self.acoustic_model(mel)
         if gt_label is not None and random.random() < 0.7:
             prev_gt = torch.cat((torch.zeros((gt_label.shape[0], 1, gt_label.shape[2]), device=mel.device, dtype=torch.long), gt_label[:, :-1, :].type(torch.LongTensor).to(mel.device)), dim=1)
+
             concated_data = torch.cat((acoustic_out,
                                        self.class_embedding(prev_gt).view(mel.shape[0], -1, self.output_size * 2)), dim=2)
-            result, _= self.language_model(concated_data)
-            total_result = self.language_post(result).view(mel.shape[0], -1, self.output_size, 5)
+            result, _ = self.language_model(concated_data)
+            total_result = self.language_post(result).view(mel.shape[0], -1, self.output_size, N_STATE)
         else:
             h, c = self.init_lstm_hidden(mel.shape[0], mel.device)
             prev_out = torch.zeros((mel.shape[0], 1, self.output_size * 2)).to(mel.device)
-            total_result = torch.zeros((mel.shape[0], acoustic_out.shape[1], self.output_size, 5)).to(mel.device)
+            total_result = torch.zeros((mel.shape[0], acoustic_out.shape[1], self.output_size, N_STATE)).to(mel.device)
             for i in range(acoustic_out.shape[1]):
                 current_data = torch.cat((acoustic_out[:,i:i+1,:], prev_out), dim=2)
                 current_out, (h, c) = self.language_model(current_data, (h, c))
                 current_out = self.language_post(current_out)
-                current_out = current_out.view((mel.shape[0], 1, self.output_size , 5))
+                current_out = current_out.view((mel.shape[0], 1, self.output_size , N_STATE))
                 out = torch.softmax(current_out, dim=3)
                 out = torch.argmax(out, dim=3)
                 prev_out = self.class_embedding(out).view(mel.shape[0], 1, self.output_size * 2)
@@ -121,7 +122,7 @@ class AR_Transcriber(nn.Module):
         current_data = torch.cat((acoustic_out, prev_embedding), dim=2)
         current_out, hidden = self.language_model(current_data, hidden)
         current_out = self.language_post(current_out)
-        current_out = current_out.view((acoustic_out.shape[0], 1, self.output_size, 5))
+        current_out = current_out.view((acoustic_out.shape[0], 1, self.output_size, N_STATE))
         current_out = torch.softmax(current_out, dim=3)
         return current_out, hidden
 
