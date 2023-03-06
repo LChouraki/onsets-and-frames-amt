@@ -14,6 +14,7 @@ N_STATE = 4
 N_MELS = 229
 MEL_FMIN = 30
 MEL_FMAX = SAMPLE_RATE // 2
-WINDOW_LENGTH = 2048
+FILTER_LENGTH = 2048
+WINDOW_LENGTH = 1024
 
 DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
