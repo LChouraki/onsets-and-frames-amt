@@ -30,7 +30,7 @@ def get_buffer_and_transcribe(model, q):
         midiout.open_virtual_port("My virtual output")
 
     transcriber = OnlineTranscriber(model)
-    with MicrophoneStream(RATE, CHUNK, 3, CHANNELS) as stream:
+    with MicrophoneStream(RATE, CHUNK, 1, CHANNELS) as stream:
         on_pitch = []
         while True:
             data = stream._buff.get()
@@ -42,6 +42,7 @@ def get_buffer_and_transcribe(model, q):
             frame_output, onsets, offsets = transcriber.inference(decoded)
 
             for pitch in onsets:
+                print(pitch + MIN_MIDI)
                 note_on = [0x90, pitch + MIN_MIDI, 64]
                 midiout.send_message(note_on)
 
@@ -75,9 +76,10 @@ def draw_plot(q):
             continue
         new_roll = np.zeros_like(piano_roll)
 
-        for i in range(num_updated):
-            new_roll[:, :-1] = piano_roll[:, 1:]
-            new_roll[:, -1] = updated_frames[i] + 0.9 * new_roll[:, -2]
+        updated_frames = np.array(updated_frames)
+        new_roll[:, :-1] = piano_roll[:, 1:]
+
+        new_roll[:, -1:] = np.expand_dims(np.sum(updated_frames, axis=0) + 0.9 * new_roll[:, -2], axis=-1)
 
         piano_roll = new_roll
         fig.canvas.restore_region(ax_background)

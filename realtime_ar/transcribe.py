@@ -96,15 +96,15 @@ class OnlineTranscriber:
 
             out = language_out.argmax(dim=3)
 
-        out[out == 4] = 3
         frame_out = out[0, 0].numpy().astype('float')
-        onset_pitches = np.argwhere(frame_out == 3)
+        onset_pitches = np.argwhere((frame_out >= 3))
 
-        off_pitches = np.argwhere((frame_out == 0) * (self.prev_output.numpy().squeeze() != 0))
+        off_pitches = np.argwhere((frame_out <= 1) * (self.prev_output.numpy().squeeze() > 1))
         self.prev_output = out
 
         frame_out[frame_out < 3] = 0
         frame_out[frame_out >= 3] = 0.4
+
         return frame_out, onset_pitches, off_pitches
 
 
