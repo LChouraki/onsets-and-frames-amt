@@ -24,6 +24,7 @@ def save_small_wav(out_path, y, fs):
 
 def jams_to_midi(jam, q=1):
     # q = 1: with pitch bend. q = 0: without pitch bend.
+    pitches = np.zeros(90)
     midi = pretty_midi.PrettyMIDI()
     midi_track = []
     annos = jam.search(namespace='note_midi')
@@ -33,6 +34,8 @@ def jams_to_midi(jam, q=1):
     for anno in annos:
         for note in anno:
             pitch = int(round(note.value))
+            print(pitch)
+            pitches[pitch] += 1
             bend_amount = int(round((note.value - pitch) * 4096))
             st = note.time
             dur = note.duration
@@ -45,7 +48,7 @@ def jams_to_midi(jam, q=1):
             midi_ch.notes.append(n)
             midi_ch.pitch_bends.append(pb)
     midi.instruments.append(midi_ch)
-    return midi
+    return midi, pitches[30:]
 
 
 def sonify_jams(jam, fpath=None, q=1):
@@ -311,13 +314,15 @@ def add_annotations(ax, annotations,
 
 data_folder = "data/GuitarSet/"
 files = os.listdir(data_folder + 'annotation/')
+pitch_cnt = np.zeros(60)
 with open(data_folder + 'data_splits_1.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(["audio_filename", "midi_filename", "split"])
     for file in tqdm.tqdm(files):
         if file.endswith('jams'):
             jam = jams.load(data_folder + 'annotation/' + file)
-            midi = jams_to_midi(jam, q=0)
+            midi, pitches = jams_to_midi(jam, q=0)
+            pitch_cnt += pitches
             midi_path = file[:-4] + 'mid'
             midi.write(data_folder + 'midi/' + midi_path)
 
@@ -327,3 +332,6 @@ with open(data_folder + 'data_splits_1.csv', 'w', newline='') as file:
                 writer.writerow([audio_path, midi_path, "validation"])
             else:
                 writer.writerow([audio_path, midi_path, "train"])
+
+plt.plot(pitch_cnt)
+plt.show()

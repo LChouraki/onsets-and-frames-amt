@@ -21,16 +21,9 @@ RATE = SAMPLE_RATE
 
 
 def get_buffer_and_transcribe(model, q):
-    midiout = rtmidi.MidiOut()
-    available_ports = midiout.get_ports()
-    print(available_ports)
-    if available_ports:
-        midiout.open_port(0)
-    else:
-        midiout.open_virtual_port("My virtual output")
 
     transcriber = OnlineTranscriber(model)
-    with MicrophoneStream(RATE, CHUNK, 1, CHANNELS) as stream:
+    with MicrophoneStream(RATE, CHUNK, 5, CHANNELS) as stream:
         on_pitch = []
         while True:
             data = stream._buff.get()
@@ -106,5 +99,19 @@ if __name__ == '__main__':
     parser.add_argument('--model_file', type=str, default='../model-3cnn.pt')
     args = parser.parse_args()
 
-    main(args.model_file)
+    midiout = rtmidi.MidiOut()
+    available_ports = midiout.get_ports()
+    print(available_ports)
+    if available_ports:
+        midiout.open_port(0)
+    else:
+        midiout.open_virtual_port("My virtual output")
+
+    try:
+        main(args.model_file)
+
+    except KeyboardInterrupt:
+        for pitch in range(MIN_MIDI, MAX_MIDI):
+            note_off = [0x90, pitch + MIN_MIDI, 0]
+            midiout.send_message(note_off)
 

@@ -15,7 +15,7 @@ class OnlineTranscriber:
             self.model.acoustic_model.cnn[i].padding = (0, 1)'''
 
         melspectrogram.stft.padding = False
-        self.audio_buffer = th.zeros((1, WINDOW_LENGTH + 6 * HOP_LENGTH)).to(th.float) # change for 2cnn
+        self.audio_buffer = th.zeros((1, FILTER_LENGTH + 6 * HOP_LENGTH)).to(th.float) # change for 2cnn
         self.mel_buffer = melspectrogram(self.audio_buffer)
 
         self.acoustic_layer_outputs = self.init_acoustic_layer(self.mel_buffer)
@@ -39,7 +39,7 @@ class OnlineTranscriber:
 
     def update_mel_buffer(self):
         self.mel_buffer[:, :, :-1] = self.mel_buffer[:, :, 1:]
-        self.mel_buffer[:, :, -1:] = melspectrogram(self.audio_buffer[:, -WINDOW_LENGTH:])
+        self.mel_buffer[:, :, -1:] = melspectrogram(self.audio_buffer[:, -FILTER_LENGTH:])
 
     def init_acoustic_layer(self, input_mel):
         x = input_mel.transpose(-1, -2).unsqueeze(1)

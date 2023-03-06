@@ -75,7 +75,7 @@ class AR_Transcriber(nn.Module):
 
         self.class_embedding = nn.Embedding(N_STATE, 2)
 
-    def forward(self, mel, gt_label):
+    def forward(self, mel, gt_label=None):
         acoustic_out = self.acoustic_model(mel)
         if gt_label is not None and random.random() < 0.7:
             prev_gt = torch.cat((torch.zeros((gt_label.shape[0], 1, gt_label.shape[2]), device=mel.device, dtype=torch.long), gt_label[:, :-1, :].type(torch.LongTensor).to(mel.device)), dim=1)
@@ -103,7 +103,7 @@ class AR_Transcriber(nn.Module):
         mel = melspectrogram(labels['audio'].reshape(-1, labels['audio'].shape[-1])[:, :-1]).transpose(-1, -2)
 
         result = self(mel, labels['label'] if train else None).squeeze()
-        loss = {'total_loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long))}
+        loss = {'loss/total_loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long))}
 
         result = torch.softmax(result, dim=-1)
         result = torch.argmax(result, dim=-1)
