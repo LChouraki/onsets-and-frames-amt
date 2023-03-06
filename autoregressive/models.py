@@ -18,7 +18,7 @@ class ConvStack(nn.Module):
             nn.Conv2d(1, output_features // 16, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
-            # layer 1
+            # layer 1  # change for 2cnn
             nn.Conv2d(output_features // 16, output_features //
                       16, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 16),
