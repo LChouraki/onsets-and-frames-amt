@@ -47,9 +47,10 @@ class PianoRollAudioDataset(Dataset):
         else:
             result['audio'] = data['audio'].to(self.device)
             result['label'] = data['label'].to(self.device)
-            result['absl_label'] = data['absl_label'].to(self.device)
+            # result['absl_label'] = data['absl_label'].to(self.device)
+        
         result['audio'] = result['audio'].float().div_(32768.0)
-        result['onset'] = (result['label'] == 3).float()
+        result['onset'] = (result['label'] >= 3).float()
         result['offset'] = (result['label'] == 1).float()
         result['frame'] = (result['label'] > 1).float()
 
@@ -115,15 +116,18 @@ class PianoRollAudioDataset(Dataset):
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
             f = int(note) - MIN_MIDI
-            label[left:onset_right, f] = 3
+            if label[left:onset_right, f] != 0:
+                label[left:onset_right, f] = 4
+            else:
+                label[left:onset_right, f] = 3
             label[onset_right:frame_right, f] = 2
             label[frame_right:offset_right, f] = 1
 
-        absl_label = midi[:, :3]
+        '''absl_label = midi[:, :3]
         absl_label[:, 2] = midi[:, 2] - MIN_MIDI
-        absl_label = absl_label[(absl_label[:, 1] - absl_label[:, 0]) > 0] # remove annotation error (offset or reonset in the pianoroll)
+        absl_label = absl_label[(absl_label[:, 1] - absl_label[:, 0]) > 0]''' # remove annotation error (offset or reonset in the pianoroll)
 
-        data = dict(path=audio_path, audio=audio, label=label, absl_label=torch.FloatTensor(absl_label))
+        data = dict(path=audio_path, audio=audio, label=label) #, absl_label=torch.FloatTensor(absl_label))
         torch.save(data, saved_data_path)
         return data
 
@@ -201,7 +205,7 @@ class GuitarSet(PianoRollAudioDataset):
 
         else:
             metadata = csv.reader(open(os.path.join(self.path, 'data_splits.csv')))
-            files = sorted([(os.path.join(self.path, "audio/audio_mic", row[0]),
+            files = sorted([(os.path.join(self.path, "audio/audio_mono-pickup_mix", row[0]),
                              os.path.join(self.path, "midi/", row[1])) for row in metadata if row[2] == group])
 
         result = []

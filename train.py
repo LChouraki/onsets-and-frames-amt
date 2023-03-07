@@ -25,11 +25,12 @@ def main():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     iterations = 100000
     resume_iteration = None
-    checkpoint_interval = 2000
+    checkpoint_interval = 6000
 
     train_on = 'GuitarSet'
-    train_with = 'ar'
+    train_with = 'onsets'
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
+
     batch_size = 8
     sequence_length = 327680 // 2
     model_complexity = 48
