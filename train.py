@@ -28,10 +28,10 @@ def main():
     checkpoint_interval = 6000
 
     train_on = 'GuitarSet'
-    train_with = 'onsets'
+    train_with = 'ar'
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
 
-    batch_size = 8
+    batch_size = 4
     sequence_length = 327680 // 2
     model_complexity = 48
 

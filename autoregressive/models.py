@@ -77,7 +77,7 @@ class AR_Transcriber(nn.Module):
 
     def forward(self, mel, gt_label=None):
         acoustic_out = self.acoustic_model(mel)
-        if gt_label is not None and random.random() < 0.7:
+        if gt_label is not None and random.random() < 0.5:
             prev_gt = torch.cat((torch.zeros((gt_label.shape[0], 1, gt_label.shape[2]), device=mel.device, dtype=torch.long), gt_label[:, :-1, :].type(torch.LongTensor).to(mel.device)), dim=1)
 
             concated_data = torch.cat((acoustic_out,
