@@ -49,11 +49,11 @@ class STFT(torch.nn.Module):
         input_data = input_data.view(num_batches, 1, num_samples)
 
         if self.padding:
-            input_data = input_data[:, :, : -int(self.filter_length * 0.25)]
+            input_data = input_data
             input_data = input_data.unsqueeze(1)
             input_data = F.pad(
                 input_data,
-                (int(self.filter_length * 1.25), 0, 0, 0),
+                (int(self.filter_length), 0, 0, 0),
                 mode='reflect')
             input_data = input_data.squeeze(1)
 
@@ -103,6 +103,5 @@ class MelSpectrogram(torch.nn.Module):
 
 
 # the default melspectrogram converter across the project
-melspectrogram = MelSpectrogram(N_MELS, SAMPLE_RATE, FILTER_LENGTH, HOP_LENGTH, win_length=WINDOW_LENGTH,
-                                mel_fmin=MEL_FMIN, mel_fmax=MEL_FMAX)
+melspectrogram = MelSpectrogram(N_MELS, SAMPLE_RATE, FILTER_LENGTH, HOP_LENGTH, mel_fmin=MEL_FMIN, mel_fmax=MEL_FMAX)
 melspectrogram.to(DEFAULT_DEVICE)

@@ -34,7 +34,6 @@ def jams_to_midi(jam, q=1):
     for anno in annos:
         for note in anno:
             pitch = int(round(note.value))
-            print(pitch)
             pitches[pitch] += 1
             bend_amount = int(round((note.value - pitch) * 4096))
             st = note.time
@@ -315,7 +314,7 @@ def add_annotations(ax, annotations,
 data_folder = "data/GuitarSet/"
 files = os.listdir(data_folder + 'annotation/')
 pitch_cnt = np.zeros(60)
-with open(data_folder + 'data_splits_1.csv', 'w', newline='') as file:
+with open(data_folder + 'data_splits.csv', 'w', newline='') as file:
     writer = csv.writer(file)
     writer.writerow(["audio_filename", "midi_filename", "split"])
     for file in tqdm.tqdm(files):
@@ -326,9 +325,9 @@ with open(data_folder + 'data_splits_1.csv', 'w', newline='') as file:
             midi_path = file[:-4] + 'mid'
             midi.write(data_folder + 'midi/' + midi_path)
 
-            audio_path = file[:-5] + '_mic.wav'
+            audio_path = file[:-5] + '_mix.wav'
             test = file.split('-')
-            if file.split('-')[0][-1] == '3':
+            if file.split('_')[0] == '00':
                 writer.writerow([audio_path, midi_path, "validation"])
             else:
                 writer.writerow([audio_path, midi_path, "train"])

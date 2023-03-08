@@ -116,10 +116,10 @@ class PianoRollAudioDataset(Dataset):
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
             f = int(note) - MIN_MIDI
-            if label[left:onset_right, f] != 0:
+            '''if label[left:onset_right, f] != 0:
                 label[left:onset_right, f] = 4
-            else:
-                label[left:onset_right, f] = 3
+            else:'''
+            label[left:onset_right, f] = 3
             label[onset_right:frame_right, f] = 2
             label[frame_right:offset_right, f] = 1
 
@@ -192,7 +192,7 @@ class MAPS(PianoRollAudioDataset):
 
 
 class GuitarSet(PianoRollAudioDataset):
-    def __init__(self, path='/data/reach/GuitarSet', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
+    def __init__(self, path='./data/GuitarSet', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
         super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device)
 
     @classmethod

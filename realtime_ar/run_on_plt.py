@@ -23,7 +23,7 @@ RATE = SAMPLE_RATE
 def get_buffer_and_transcribe(model, q):
 
     transcriber = OnlineTranscriber(model)
-    with MicrophoneStream(RATE, CHUNK, 5, CHANNELS) as stream:
+    with MicrophoneStream(RATE, CHUNK, 1, CHANNELS) as stream:
         on_pitch = []
         while True:
             data = stream._buff.get()
@@ -34,8 +34,11 @@ def get_buffer_and_transcribe(model, q):
                 decoded = np.mean(decoded, axis=0)
             frame_output, onsets, offsets = transcriber.inference(decoded)
 
+            '''if len(onsets) > 0:
+                print("ONSET", onsets)
+            if len(offsets) > 0:
+                print("OFFSET", offsets)'''
             for pitch in onsets:
-                print(pitch + MIN_MIDI)
                 note_on = [0x90, pitch + MIN_MIDI, 64]
                 midiout.send_message(note_on)
 
@@ -96,7 +99,7 @@ def main(model_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_file', type=str, default='../model-3cnn.pt')
+    parser.add_argument('--model_file', type=str, default='../model-24000.pt')
     args = parser.parse_args()
 
     midiout = rtmidi.MidiOut()

@@ -31,7 +31,7 @@ def main():
     train_with = 'ar'
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
 
-    batch_size = 4
+    batch_size = 8
     sequence_length = 327680 // 2
     model_complexity = 48
 
