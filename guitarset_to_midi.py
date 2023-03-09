@@ -1,4 +1,4 @@
-import numpy as np
+import glob
 import numpy as np
 import pretty_midi
 from matplotlib import lines as mlines, pyplot as plt
@@ -6,6 +6,7 @@ import tempfile
 import librosa
 import os
 import pandas as pd
+import soundfile
 import jams
 import tqdm
 import csv
@@ -324,13 +325,47 @@ with open(data_folder + 'data_splits.csv', 'w', newline='') as file:
             pitch_cnt += pitches
             midi_path = file[:-4] + 'mid'
             midi.write(data_folder + 'midi/' + midi_path)
-
             audio_path = file[:-5] + '_mix.wav'
-            test = file.split('-')
+
             if file.split('_')[0] == '00':
                 writer.writerow([audio_path, midi_path, "validation"])
             else:
                 writer.writerow([audio_path, midi_path, "train"])
+
+    wav_comp_files = glob.glob(data_folder + "audio/audio_mono-pickup_mix/*_comp_mix.wav")
+
+    for wav_comp_file in wav_comp_files:
+        wav_solo_file = wav_comp_file.replace("comp", "solo")
+
+        midi_comp_file = wav_comp_file.replace("_mix.wav", ".mid").replace("audio/audio_mono-pickup_mix", "midi")
+        midi_solo_file = wav_comp_file.replace("comp_mix.wav", "solo.mid").replace("audio/audio_mono-pickup_mix",
+                                                                                    "midi")
+
+        comp_audio, sr = librosa.load(wav_comp_file)
+        solo_audio, _ = librosa.load(wav_solo_file)
+
+        mix_audio = (comp_audio + solo_audio)
+
+        midi_comp = pretty_midi.PrettyMIDI(midi_comp_file)
+        midi_solo = pretty_midi.PrettyMIDI(midi_solo_file)
+        new_midi = midi_comp
+
+        for instr in midi_solo.instruments:
+            new_midi.instruments.append(instr)
+
+        audio_path = wav_comp_file.replace("comp", "combined")
+        midi_path = midi_comp_file.replace("comp", "combined")
+
+        soundfile.write(audio_path, mix_audio, sr)
+        new_midi.write(midi_path)
+
+        audio_path = audio_path.split('/')[-1]
+        midi_path = midi_path.split('/')[-1]
+        if audio_path.split('_')[0] == '05':
+            writer.writerow([audio_path, midi_path, "validation"])
+        else:
+             writer.writerow([audio_path, midi_path, "train"])
+
 
 plt.plot(pitch_cnt)
 plt.show()

@@ -14,30 +14,33 @@ from autoregressive.midi import save_midi
 from constants import *
 
 matplotlib.use('Qt5Agg')
-CHUNK = 512
+
 FORMAT = pyaudio.paInt16
-CHANNELS = pyaudio.PyAudio().get_default_input_device_info()['maxInputChannels']
+CHANNELS = 1 #pyaudio.PyAudio().get_default_input_device_info()['maxInputChannels']
 RATE = SAMPLE_RATE
+CHUNK = HOP_LENGTH
 
 
 def get_buffer_and_transcribe(model, q):
 
     transcriber = OnlineTranscriber(model)
-    with MicrophoneStream(RATE, CHUNK, 1, CHANNELS) as stream:
+    with MicrophoneStream(RATE, CHUNK, 5, CHANNELS) as stream:
         on_pitch = []
         while True:
             data = stream._buff.get()
             decoded = np.frombuffer(data, dtype=np.int16) / 32768.0
 
             if CHANNELS > 1:
-                decoded = decoded.reshape(CHANNELS, -1)
-                decoded = np.mean(decoded, axis=0)
+                decoded = decoded.reshape(-1, CHANNELS)
+                decoded = np.mean(decoded, axis=1)
+
             frame_output, onsets, offsets = transcriber.inference(decoded)
 
             '''if len(onsets) > 0:
                 print("ONSET", onsets)
             if len(offsets) > 0:
                 print("OFFSET", offsets)'''
+            print(onsets)
             for pitch in onsets:
                 note_on = [0x90, pitch + MIN_MIDI, 64]
                 midiout.send_message(note_on)
@@ -99,7 +102,7 @@ def main(model_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_file', type=str, default='../model-24000.pt')
+    parser.add_argument('--model_file', type=str, default='../model-6000.pt')
     args = parser.parse_args()
 
     midiout = rtmidi.MidiOut()

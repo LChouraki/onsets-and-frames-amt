@@ -49,11 +49,11 @@ class STFT(torch.nn.Module):
         input_data = input_data.view(num_batches, 1, num_samples)
 
         if self.padding:
-            input_data = input_data
+            input_data = input_data[:, :, :-self.filter_length]
             input_data = input_data.unsqueeze(1)
             input_data = F.pad(
                 input_data,
-                (int(self.filter_length), 0, 0, 0),
+                (int(2 * self.filter_length), 0, 0, 0),
                 mode='reflect')
             input_data = input_data.squeeze(1)
 
