@@ -32,7 +32,7 @@ def main():
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
 
     batch_size = 8
-    sequence_length = 327680 // 2
+    sequence_length = 327680 // 4
     model_complexity = 48
 
     if torch.cuda.is_available() and torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory < 10e9:

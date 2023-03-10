@@ -14,6 +14,6 @@ N_STATE = 4  # change for 2cnn
 N_MELS = 229
 MEL_FMIN = 30
 MEL_FMAX = SAMPLE_RATE // 2
-FILTER_LENGTH = 4 * HOP_LENGTH
+FILTER_LENGTH = 512
 
 DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'

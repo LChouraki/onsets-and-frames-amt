@@ -103,7 +103,7 @@ class AR_Transcriber(nn.Module):
         mel = melspectrogram(labels['audio'].reshape(-1, labels['audio'].shape[-1])[:, :-1]).transpose(-1, -2)
 
         result = self(mel, labels['label'] if train else None).squeeze()
-        loss = {'loss/total_loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long))}
+        loss = {'loss/total_loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long), weights=torch.Tensor([1, 1, 1.5, 2]))}
 
         result = torch.softmax(result, dim=-1)
         result = torch.argmax(result, dim=-1)

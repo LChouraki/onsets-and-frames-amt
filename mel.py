@@ -49,11 +49,11 @@ class STFT(torch.nn.Module):
         input_data = input_data.view(num_batches, 1, num_samples)
 
         if self.padding:
-            input_data = input_data[:, :, :-self.filter_length]
+            input_data = input_data
             input_data = input_data.unsqueeze(1)
             input_data = F.pad(
                 input_data,
-                (int(2 * self.filter_length), 0, 0, 0),
+                (int(self.filter_length), 0, 0, 0),
                 mode='reflect')
             input_data = input_data.squeeze(1)
 
@@ -98,7 +98,7 @@ class MelSpectrogram(torch.nn.Module):
         magnitudes, phases = self.stft(y)
         magnitudes = magnitudes.data
         mel_output = torch.matmul(self.mel_basis, magnitudes)
-        mel_output = torch.log(torch.clamp(mel_output, min=1e-5))
+        mel_output = torch.log10(torch.clamp(mel_output, min=1e-5))
         return mel_output
 
 
