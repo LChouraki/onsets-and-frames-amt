@@ -3,7 +3,8 @@ import torch as th
 import numpy as np
 from constants import *
 from mel import melspectrogram
-
+from utils import summary
+import time
 
 class OnlineTranscriber:
     def __init__(self, model, return_roll=True):
@@ -92,8 +93,8 @@ class OnlineTranscriber:
             self.update_mel_buffer()
 
             acoustic_out = self.update_acoustic_out(self.mel_buffer.transpose(-1, -2))
-            language_out, self.hidden = self.model.lm_model_step(acoustic_out, self.hidden, self.prev_output)
-
+            language_out, self.hidden = self.model.lm_model_step(acoustic_out, self.hidden, self.prev_output, self.test)
+            self.test = False
             out = language_out.argmax(dim=3)
 
         frame_out = out[0, 0].numpy().astype('float')
@@ -110,4 +111,5 @@ class OnlineTranscriber:
 
 def load_model(filename):
     model = th.load(filename, map_location=th.device('cpu'))
+    summary(model)
     return model

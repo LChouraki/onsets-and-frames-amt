@@ -7,6 +7,7 @@ from glob import glob
 import librosa
 import numpy as np
 import soundfile
+import torch.nn.functional
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
@@ -27,7 +28,8 @@ class PianoRollAudioDataset(Dataset):
               f"of {self.__class__.__name__} at {path}")
         for group in groups:
             for input_files in tqdm(self.files(group), desc='Loading group %s' % group):
-                self.data.append(self.load(*input_files))
+                for i in range(0, 1):
+                    self.data.append(self.load(*input_files, i))
 
     def __getitem__(self, index):
         data = self.data[index]
@@ -70,7 +72,7 @@ class PianoRollAudioDataset(Dataset):
         """return the list of input files (audio_filename, tsv_filename) for this group"""
         raise NotImplementedError
 
-    def load(self, audio_path, tsv_path):
+    def load(self, audio_path, tsv_path, pitch_shift):
         """
         load an audio track and the corresponding labels
 
@@ -89,14 +91,17 @@ class PianoRollAudioDataset(Dataset):
                 3 = onset, 2 = frames after onset, 1 = offset, 0 = all else
 
         """
-        saved_data_path = audio_path.replace('.flac', '.pt').replace('.wav', '.pt')
-        if os.path.exists(saved_data_path):
-            return torch.load(saved_data_path)
 
+        saved_data_path = audio_path.replace('.wav', '+%i.pt' % pitch_shift)
+        '''if os.path.exists(saved_data_path):
+            return torch.load(saved_data_path)'''
+
+        scale_factor = 2 ** (pitch_shift / 12)
         audio, sr = soundfile.read(audio_path, dtype='int16')
-        if sr != SAMPLE_RATE:
-            audio = librosa.resample(y=audio.astype(float), orig_sr=sr, target_sr=SAMPLE_RATE)
-            audio = audio.astype('int16')
+
+        audio = librosa.resample(y=audio.astype(float), orig_sr=sr, target_sr=sr / scale_factor)
+        audio = audio.astype('int16')
+
         audio = torch.ShortTensor(audio)
         audio_length = len(audio)
 
@@ -109,13 +114,13 @@ class PianoRollAudioDataset(Dataset):
         midi = np.loadtxt(tsv_path, delimiter='\t', skiprows=1)
 
         for onset, offset, note, vel in midi:
-            left = int(round(onset * SAMPLE_RATE / HOP_LENGTH))
+            left = int(round((onset / scale_factor) * SAMPLE_RATE / HOP_LENGTH))
             onset_right = min(n_steps, left + HOPS_IN_ONSET)
-            frame_right = int(round(offset * SAMPLE_RATE / HOP_LENGTH))
+            frame_right = int(round((offset / scale_factor) * SAMPLE_RATE / HOP_LENGTH))
             frame_right = min(n_steps, frame_right)
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
-            f = int(note) - MIN_MIDI
+            f = int(note) + pitch_shift - MIN_MIDI
             '''if label[left:onset_right, f] != 0:
                 label[left:onset_right, f] = 4
             else:'''
@@ -192,7 +197,7 @@ class MAPS(PianoRollAudioDataset):
 
 
 class GuitarSet(PianoRollAudioDataset):
-    def __init__(self, path='/data/reach/GuitarSet', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
+    def __init__(self, path='data/GuitarSet', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
         super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device)
 
     @classmethod
