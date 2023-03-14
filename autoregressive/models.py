@@ -25,19 +25,19 @@ class ConvStack(nn.Module):
             nn.ReLU(),
             # layer 2
             nn.MaxPool2d((1, 2)),
-            nn.Dropout(0.1),
+            nn.Dropout(0.25),
             nn.Conv2d(output_features // 16,
                       output_features // 8, (3, 3), padding=1),
             nn.BatchNorm2d(output_features // 8),
             nn.ReLU(),
             # layer 3
             nn.MaxPool2d((1, 2)),
-            nn.Dropout(0.1),
+            nn.Dropout(0.25),
         )
         self.fc = nn.Sequential(
             nn.Linear((output_features // 8) *
                       (input_features // 4), output_features),
-            nn.Dropout(0.25)
+            nn.Dropout(0.5)
         )
 
     def forward(self, mel):
@@ -86,16 +86,15 @@ class AR_Transcriber(nn.Module):
             total_result = self.language_post(result).view(mel.shape[0], -1, self.output_size, N_STATE)
         else:
             h, c = self.init_lstm_hidden(mel.shape[0], mel.device)
-            prev_out = self.class_embedding(torch.zeros((mel.shape[0], 1, self.output_size), device=mel.device, dtype=torch.long)).view(mel.shape[0], 1, self.output_size * 2)
+            prev_out = torch.zeros((mel.shape[0], 1, self.output_size), device=mel.device, dtype=torch.long)
             total_result = torch.zeros((mel.shape[0], acoustic_out.shape[1], self.output_size, N_STATE)).to(mel.device)
             for i in range(acoustic_out.shape[1]):
-                current_data = torch.cat((acoustic_out[:,i:i+1,:], prev_out), dim=2)
+                current_data = torch.cat((acoustic_out[:,i:i+1,:], self.class_embedding(prev_out).view(mel.shape[0], 1, self.output_size * 2)), dim=2)
                 current_out, (h, c) = self.language_model(current_data, (h, c))
                 current_out = self.language_post(current_out)
                 current_out = current_out.view((mel.shape[0], 1, self.output_size, N_STATE))
-                out = torch.softmax(current_out, dim=3)
-                out = torch.argmax(out, dim=3)
-                prev_out = self.class_embedding(out).view(mel.shape[0], 1, self.output_size * 2)
+                prev_out = torch.softmax(current_out, dim=3)
+                prev_out = torch.argmax(prev_out, dim=3)
                 total_result[:, i:i + 1, :] = current_out
         return total_result
 
@@ -103,7 +102,7 @@ class AR_Transcriber(nn.Module):
         mel = melspectrogram(labels['audio'].reshape(-1, labels['audio'].shape[-1])[:, :-1]).transpose(-1, -2)
 
         result = self(mel, labels['label'] if train else None).squeeze()
-        loss = {'loss/total_loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long), weight=torch.Tensor([1, 1, 1.5, 2]))}
+        loss = {'loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long))} #, weight=torch.Tensor([1, 1, 1.5, 2]))}
 
         result = torch.softmax(result, dim=-1)
         result = torch.argmax(result, dim=-1)

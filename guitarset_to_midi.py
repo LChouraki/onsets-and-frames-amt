@@ -312,7 +312,7 @@ def add_annotations(ax, annotations,
                     fontdict={'backgroundcolor': ax.get_facecolor()})
 
 
-data_folder = "data/GuitarSet/"
+data_folder = "/data/reach/GuitarSet/"
 files = os.listdir(data_folder + 'annotation/')
 pitch_cnt = np.zeros(60)
 with open(data_folder + 'data_splits.csv', 'w', newline='') as file:
@@ -327,7 +327,7 @@ with open(data_folder + 'data_splits.csv', 'w', newline='') as file:
             midi.write(data_folder + 'midi/' + midi_path)
             audio_path = file[:-5] + '_mix.wav'
 
-            if file.split('_')[0] == '00':
+            if file.split('_')[0] == '05':
                 writer.writerow([audio_path, midi_path, "validation"])
             else:
                 writer.writerow([audio_path, midi_path, "train"])

@@ -99,7 +99,7 @@ class PianoRollAudioDataset(Dataset):
         scale_factor = 2 ** (pitch_shift / 12)
         audio, sr = soundfile.read(audio_path, dtype='int16')
 
-        audio = librosa.resample(y=audio.astype(float), orig_sr=sr, target_sr=sr / scale_factor)
+        audio = librosa.resample(y=audio.astype(float), orig_sr=sr, target_sr=SAMPLE_RATE / scale_factor)
         audio = audio.astype('int16')
 
         audio = torch.ShortTensor(audio)
@@ -197,7 +197,7 @@ class MAPS(PianoRollAudioDataset):
 
 
 class GuitarSet(PianoRollAudioDataset):
-    def __init__(self, path='data/GuitarSet', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
+    def __init__(self, path='/data/reach/GuitarSet', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
         super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device)
 
     @classmethod
