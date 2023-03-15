@@ -14,30 +14,33 @@ class ConvStack(nn.Module):
 
         # input is batch_size * 1 channel * frames * input_features
         self.cnn = nn.Sequential(
+            nn.ZeroPad2d((2, 0, 1, 1)),
             # layer 0
-            nn.Conv2d(1, output_features // 16, (3, 3), padding=1),
+            nn.Conv2d(1, output_features // 16, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 1  # change for 2cnn
+            nn.ZeroPad2d((2, 0, 1, 1)),
             nn.Conv2d(output_features // 16, output_features //
-                      16, (3, 3), padding=1),
+                      16, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 2
             nn.MaxPool2d((1, 2)),
-            nn.Dropout(0.25),
+            nn.Dropout(0.1),
+            nn.ZeroPad2d((2, 0, 1, 1)),
             nn.Conv2d(output_features // 16,
-                      output_features // 8, (3, 3), padding=1),
+                      output_features // 8, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 8),
             nn.ReLU(),
             # layer 3
             nn.MaxPool2d((1, 2)),
-            nn.Dropout(0.25),
+            nn.Dropout(0.1),
         )
         self.fc = nn.Sequential(
             nn.Linear((output_features // 8) *
                       (input_features // 4), output_features),
-            nn.Dropout(0.5)
+            nn.Dropout(0.25)
         )
 
     def forward(self, mel):
@@ -76,6 +79,10 @@ class AR_Transcriber(nn.Module):
         self.class_embedding = nn.Embedding(N_STATE, 2)
 
     def forward(self, mel, gt_label=None):
+        '''acoustic_out = torch.zeros(mel.shape[0], mel.shape[1], self.model_complexity_conv * 16, device=mel.device)
+        for i in range(mel.shape[1] - 7):
+            mel_step = torch.cat((mel[:, i:i+4], torch.zeros_like(mel[:,:3])), dim=1)
+            acoustic_out[:, i:i+7] = self.acoustic_model(mel_step)'''
         acoustic_out = self.acoustic_model(mel)
         if gt_label is not None and random.random() < 0.8:
             prev_gt = torch.cat((torch.zeros((gt_label.shape[0], 1, gt_label.shape[2]), device=mel.device, dtype=torch.long), gt_label[:, :-1, :].type(torch.LongTensor).to(mel.device)), dim=1)
