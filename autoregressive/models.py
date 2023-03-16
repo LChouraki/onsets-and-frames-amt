@@ -77,10 +77,14 @@ class AR_Transcriber(nn.Module):
         )
 
         self.class_embedding = nn.Embedding(N_STATE, 2)
-        self.loss_weights = torch.Tensor([1, 1, 1, 2]).to("cuda")
+        self.loss_weights = torch.Tensor([1, 1, 1, 2]).to(DEFAULT_DEVICE)
 
     def forward(self, mel, gt_label=None):
         '''acoustic_out = torch.zeros(mel.shape[0], mel.shape[1], self.model_complexity_conv * 16, device=mel.device)
+        for i in range(mel.shape[1] - 7):
+            mel_step = torch.cat((mel[:, i:i+4], torch.zeros_like(mel[:,:3])), dim=1)
+            acoustic_out[:, i:i+7] = self.acoustic_model(mel_step)'''
+        '''acoustic_out = torch.zeros(mel.shape[0], mel.shape[1], self.model_complexity_conv * 16)
         for i in range(mel.shape[1] - 7):
             mel_step = torch.cat((mel[:, i:i+4], torch.zeros_like(mel[:,:3])), dim=1)
             acoustic_out[:, i:i+7] = self.acoustic_model(mel_step)'''

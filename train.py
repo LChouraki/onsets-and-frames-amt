@@ -24,13 +24,13 @@ def main():
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     iterations = 200000
-    resume_iteration = 96000
+    resume_iteration = None
     checkpoint_interval = 10000
 
     train_on = 'GuitarSet'
     train_with = 'ar'
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
-    logdir = 'runs/transcriber-' + train_with + '-32_16_pitch_128mel'
+
     batch_size = 8
     sequence_length = 327680 // 8
     model_complexity = 48
@@ -85,7 +85,7 @@ def main():
         optimizer.load_state_dict(torch.load(os.path.join(logdir, 'last-optimizer-state.pt')))
 
     summary(model)
-    early_stopper = EarlyStopping(patience=10)
+    early_stopper = EarlyStopping(patience=3)
     scheduler = StepLR(optimizer, step_size=learning_rate_decay_steps, gamma=learning_rate_decay_rate)
 
     loop = tqdm(range(resume_iteration + 1, iterations + 1))
@@ -115,7 +115,7 @@ def main():
                 for key, value in scores.items():
                     writer.add_scalar('validation/' + key.replace(' ', '_'), np.mean(value), global_step=i)
                 
-                if early_stopper.early_stop(val_loss):
+                if early_stopper.early_stop(4-i):
                     break
             model.train()
 

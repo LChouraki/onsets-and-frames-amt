@@ -6,7 +6,7 @@ from autoregressive.midi import save_midi
 from constants import *
 
 audio_file = "/Users/louischouraki/Documents/onsets-and-frames-pytorch/" \
-        "data/GuitarSet/audio/audio_mono-pickup_mix/05_BN2-166-Ab_solo_mix.wav"
+        "data/GuitarSet/audio/audio_mono-pickup_mix/05_BN2-166-Ab_comp_mix.wav"
 
 model = torch.load("./model-18000.pt", map_location=torch.device('cpu'))
 

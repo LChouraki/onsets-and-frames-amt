@@ -16,7 +16,7 @@ from constants import *
 matplotlib.use('Qt5Agg')
 
 FORMAT = pyaudio.paInt16
-CHANNELS = 1 #pyaudio.PyAudio().get_default_input_device_info()['maxInputChannels']
+CHANNELS = 1 # pyaudio.PyAudio().get_default_input_device_info()['maxInputChannels']
 RATE = SAMPLE_RATE
 CHUNK = HOP_LENGTH
 
@@ -24,7 +24,7 @@ CHUNK = HOP_LENGTH
 def get_buffer_and_transcribe(model, q):
 
     transcriber = OnlineTranscriber(model)
-    with MicrophoneStream(RATE, CHUNK, 3, CHANNELS) as stream:
+    with MicrophoneStream(RATE, CHUNK, 1, CHANNELS) as stream:
         on_pitch = []
         time_buff = np.zeros(5000)
         index = 0
@@ -45,11 +45,11 @@ def get_buffer_and_transcribe(model, q):
             if len(offsets) > 0:
                 print("OFFSET", offsets)'''
             for pitch in onsets:
-                note_on = [0x90, pitch + MIN_MIDI, 64]
+                note_on = [0x90, pitch + MIN_MIDI - 2, 64]
                 midiout.send_message(note_on)
 
             for pitch in offsets:
-                note_off = [0x90, pitch + MIN_MIDI, 0]
+                note_off = [0x90, pitch + MIN_MIDI - 2, 0]
                 midiout.send_message(note_off)
 
             q.put(frame_output)
@@ -58,7 +58,7 @@ def get_buffer_and_transcribe(model, q):
             #print("MEAN:", np.mean(time_buff[:min(5000, index)]))
 
 def draw_plot(q):
-    piano_roll = np.zeros((MAX_MIDI - MIN_MIDI + 1, 64))
+    piano_roll = np.zeros((MAX_MIDI - MIN_MIDI + 1 + 4, 64))
     piano_roll[30, 0] = 1  # for test
 
     plt.ion()
@@ -107,7 +107,7 @@ def main(model_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_file', type=str, default='../model-18000.pt')
+    parser.add_argument('--model_file', type=str, default='../runs/transcriber-ar-230316-132647/model-96000.pt')
     args = parser.parse_args()
 
     midiout = rtmidi.MidiOut()

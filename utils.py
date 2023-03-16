@@ -1,6 +1,6 @@
 import sys
 from functools import reduce
-
+import numpy as np
 import torch
 from PIL import Image
 from torch.nn.modules.module import _addindent

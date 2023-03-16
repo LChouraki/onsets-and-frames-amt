@@ -10,8 +10,8 @@ class OnlineTranscriber:
     def __init__(self, model, return_roll=True):
         self.model = model
         self.model.eval()
-        for i in (0, 3, 8):
-            self.model.acoustic_model.cnn[i].padding = (0, 1)
+        for i in (0, 4, 10):
+            self.model.acoustic_model.cnn[i].padding = (1, 1, 0, 0)
         '''for i in (0, 5): # change for 2cnn
             self.model.acoustic_model.cnn[i].padding = (0, 1)'''
 
@@ -22,7 +22,7 @@ class OnlineTranscriber:
         self.acoustic_layer_outputs = self.init_acoustic_layer(self.mel_buffer)
 
         self.hidden = model.init_lstm_hidden(1, 'cpu')
-        self.prev_output = th.zeros((1, 1, MAX_MIDI - MIN_MIDI + 1)).to(th.long)
+        self.prev_output = th.zeros((1, 1, MAX_MIDI - MIN_MIDI + 1 + 4)).to(th.long)
         self.buffer_length = 0
         self.sr = SAMPLE_RATE
         self.return_roll = return_roll
@@ -47,27 +47,27 @@ class OnlineTranscriber:
         acoustic_layer_outputs = []
         for i, layer in enumerate(self.model.acoustic_model.cnn):
             x = layer(x)
-            if i in [2, 7]:
+            if i in [3, 9]:
                 acoustic_layer_outputs.append(x)
         return acoustic_layer_outputs
 
     def update_acoustic_out(self, mel):
         x = mel[:, -3:, :].unsqueeze(1)
         layers = self.model.acoustic_model.cnn
-        for i in range(3):
+        for i in range(4):
             x = layers[i](x)
         self.acoustic_layer_outputs[0][:, :, :-1, :] = self.acoustic_layer_outputs[0][:, :, 1:, :]
         self.acoustic_layer_outputs[0][:, :, -1:, :] = x
 
         x = self.acoustic_layer_outputs[0][:, :, -3:, :]
 
-        for i in range(3, 8):       # change for 2cnn
+        for i in range(4, 10):       # change for 2cnn
             x = layers[i](x)
         self.acoustic_layer_outputs[1][:, :, :-1, :] = self.acoustic_layer_outputs[1][:, :, 1:, :]
         self.acoustic_layer_outputs[1][:, :, -1:, :] = x
 
         x = self.acoustic_layer_outputs[1] # change for 2cnn
-        for i in range(8, 13): # change for 2cnn
+        for i in range(10, 16): # change for 2cnn
             x = layers[i](x)
         x = x.transpose(1, 2).flatten(-2)
         return self.model.acoustic_model.fc(x)
@@ -87,14 +87,13 @@ class OnlineTranscriber:
             self.switch_on_or_off()
             if self.num_under_thr > self.patience:
                 if self.return_roll:
-                    return [0] * (MAX_MIDI - MIN_MIDI + 1), [], []
+                    return [0] * (MAX_MIDI - MIN_MIDI + 1 + 4), [], []
                 else:
                     return [], []
             self.update_mel_buffer()
 
             acoustic_out = self.update_acoustic_out(self.mel_buffer.transpose(-1, -2))
-            language_out, self.hidden = self.model.lm_model_step(acoustic_out, self.hidden, self.prev_output, self.test)
-            self.test = False
+            language_out, self.hidden = self.model.lm_model_step(acoustic_out, self.hidden, self.prev_output)
             out = language_out.argmax(dim=3)
 
         frame_out = out[0, 0].numpy().astype('float')

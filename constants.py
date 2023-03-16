@@ -18,3 +18,4 @@ MEL_FMAX = SAMPLE_RATE // 2
 FILTER_LENGTH = 512
 
 DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEFAULT_DEVICE = 'mps' if torch.backends.mps.is_available() else DEFAULT_DEVICE
