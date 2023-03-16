@@ -15,7 +15,7 @@ from evaluate import evaluate
 from constants import *
 from autoregressive.models import AR_Transcriber
 from onsets_and_frames.transcriber import OnsetsAndFrames
-from utils import summary, cycle
+from utils import summary, cycle, EarlyStopping
 
 ex = Experiment('train_transcriber')
 
@@ -23,16 +23,16 @@ ex = Experiment('train_transcriber')
 def main():
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    iterations = 100000
-    resume_iteration = None
-    checkpoint_interval = 6000
+    iterations = 200000
+    resume_iteration = 96000
+    checkpoint_interval = 10000
 
     train_on = 'GuitarSet'
     train_with = 'ar'
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
-
+    logdir = 'runs/transcriber-' + train_with + '-32_16_pitch_128mel'
     batch_size = 8
-    sequence_length = 327680 // 4
+    sequence_length = 327680 // 8
     model_complexity = 48
 
     if torch.cuda.is_available() and torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory < 10e9:
@@ -41,7 +41,7 @@ def main():
         print(f'Reducing batch size to {batch_size} and sequence_length to {sequence_length} to save memory')
 
     learning_rate = 0.0006
-    learning_rate_decay_steps = 2000
+    learning_rate_decay_steps = 10000
     learning_rate_decay_rate = 0.98
 
     leave_one_out = None
@@ -73,7 +73,7 @@ def main():
     loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
     if resume_iteration is None:
-        model = AR_Transcriber(N_MELS, MAX_MIDI - MIN_MIDI + 1, model_complexity).to(device) if train_with == "ar" \
+        model = AR_Transcriber(N_MELS, MAX_MIDI - MIN_MIDI + 1 + 4, model_complexity).to(device) if train_with == "ar" \
            else OnsetsAndFrames(N_MELS, MAX_MIDI - MIN_MIDI + 1, model_complexity).to(device)
 
         optimizer = torch.optim.Adam(model.parameters(), learning_rate)
@@ -85,6 +85,7 @@ def main():
         optimizer.load_state_dict(torch.load(os.path.join(logdir, 'last-optimizer-state.pt')))
 
     summary(model)
+    early_stopper = EarlyStopping(patience=10)
     scheduler = StepLR(optimizer, step_size=learning_rate_decay_steps, gamma=learning_rate_decay_rate)
 
     loop = tqdm(range(resume_iteration + 1, iterations + 1))
@@ -106,13 +107,16 @@ def main():
         if i % validation_interval == 0:
             model.eval()
             with torch.no_grad():
-                scores = evaluate(validation_dataset, model)
+                scores, val_loss = evaluate(validation_dataset, model)
                 print("Note: %s, Offsets: %s, Frame: %s" %
                       (np.mean(scores['metric/note/f1']),
                        np.mean(scores['metric/note-with-offsets/f1']),
                        np.mean(scores['metric/frame/f1'])))
                 for key, value in scores.items():
                     writer.add_scalar('validation/' + key.replace(' ', '_'), np.mean(value), global_step=i)
+                
+                if early_stopper.early_stop(val_loss):
+                    break
             model.train()
 
         if i % checkpoint_interval == 0:

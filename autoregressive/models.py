@@ -14,13 +14,13 @@ class ConvStack(nn.Module):
 
         # input is batch_size * 1 channel * frames * input_features
         self.cnn = nn.Sequential(
-            nn.ZeroPad2d((2, 0, 1, 1)),
+            nn.ZeroPad2d((1, 1, 2, 0)),
             # layer 0
             nn.Conv2d(1, output_features // 16, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 1  # change for 2cnn
-            nn.ZeroPad2d((2, 0, 1, 1)),
+            nn.ZeroPad2d((1, 1, 2, 0)),
             nn.Conv2d(output_features // 16, output_features //
                       16, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 16),
@@ -28,7 +28,7 @@ class ConvStack(nn.Module):
             # layer 2
             nn.MaxPool2d((1, 2)),
             nn.Dropout(0.1),
-            nn.ZeroPad2d((2, 0, 1, 1)),
+            nn.ZeroPad2d((1, 1, 2, 0)),
             nn.Conv2d(output_features // 16,
                       output_features // 8, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 8),
@@ -59,7 +59,7 @@ class AR_Transcriber(nn.Module):
 
         self.input_features = input_features
         self.output_features = output_features
-        self.output_size = MAX_MIDI - MIN_MIDI + 1
+        self.output_size = MAX_MIDI - MIN_MIDI + 1 + 4
         self.model_complexity_conv = model_complexity_conv
         self.model_complexity_lstm = model_complexity_lstm
 
@@ -77,6 +77,7 @@ class AR_Transcriber(nn.Module):
         )
 
         self.class_embedding = nn.Embedding(N_STATE, 2)
+        self.loss_weights = torch.Tensor([1, 1, 1, 2]).to("cuda")
 
     def forward(self, mel, gt_label=None):
         '''acoustic_out = torch.zeros(mel.shape[0], mel.shape[1], self.model_complexity_conv * 16, device=mel.device)
@@ -109,7 +110,7 @@ class AR_Transcriber(nn.Module):
         mel = melspectrogram(labels['audio'].reshape(-1, labels['audio'].shape[-1])[:, :-1]).transpose(-1, -2)
 
         result = self(mel, labels['label'] if train else None).squeeze()
-        loss = {'loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long))} #, weight=torch.Tensor([1, 1, 1.5, 2]))}
+        loss = {'loss': F.cross_entropy(result.movedim(-1, 1), labels['label'].to(torch.long), weight=self.loss_weights)}
 
         result = torch.softmax(result, dim=-1)
         result = torch.argmax(result, dim=-1)

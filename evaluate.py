@@ -73,7 +73,7 @@ def evaluate(data, model, onset_threshold=0.5, frame_threshold=0.5, save_path=No
             midi_path = os.path.join(save_path, os.path.basename(label['path']) + '.pred.mid')
             save_midi(midi_path, p_est, i_est)
 
-    return metrics
+    return metrics, losses
 
 
 def evaluate_file(model_file, dataset, dataset_group, sequence_length, save_path,

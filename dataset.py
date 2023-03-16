@@ -28,8 +28,11 @@ class PianoRollAudioDataset(Dataset):
               f"of {self.__class__.__name__} at {path}")
         for group in groups:
             for input_files in tqdm(self.files(group), desc='Loading group %s' % group):
-                for i in range(0, 1):
-                    self.data.append(self.load(*input_files, i))
+                if group == 'train':
+                    for i in range(-2, 3):
+                        self.data.append(self.load(*input_files, i))
+                else:
+                    self.data.append(self.load(*input_files, 0))
 
     def __getitem__(self, index):
         data = self.data[index]
@@ -105,7 +108,7 @@ class PianoRollAudioDataset(Dataset):
         audio = torch.ShortTensor(audio)
         audio_length = len(audio)
 
-        n_keys = MAX_MIDI - MIN_MIDI + 1
+        n_keys = MAX_MIDI - MIN_MIDI + 1 + 4
         n_steps = (audio_length - 1) // HOP_LENGTH + 1
 
         label = torch.zeros(n_steps, n_keys, dtype=torch.uint8)
@@ -120,7 +123,7 @@ class PianoRollAudioDataset(Dataset):
             frame_right = min(n_steps, frame_right)
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
-            f = int(note) + pitch_shift - MIN_MIDI
+            f = int(note) + pitch_shift - MIN_MIDI + 2
             '''if label[left:onset_right, f] != 0:
                 label[left:onset_right, f] = 4
             else:'''
