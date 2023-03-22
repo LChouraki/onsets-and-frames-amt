@@ -96,8 +96,8 @@ class PianoRollAudioDataset(Dataset):
         """
 
         saved_data_path = audio_path.replace('.wav', '+%i.pt' % pitch_shift)
-        '''if os.path.exists(saved_data_path):
-            return torch.load(saved_data_path)'''
+        if os.path.exists(saved_data_path):
+            return torch.load(saved_data_path)
 
         scale_factor = 2 ** (pitch_shift / 12)
         audio, sr = soundfile.read(audio_path, dtype='int16')

@@ -23,17 +23,18 @@ ex = Experiment('train_transcriber')
 def main():
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    iterations = 200000
+    iterations = 250000
     resume_iteration = None
-    checkpoint_interval = 10000
+    checkpoint_interval = 5000
 
     train_on = 'GuitarSet'
     train_with = 'ar'
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
-
+    #logdir = 'runs/transcriber-' + train_with + '-32_16_pitchshift_(1,3)_131'
+    
     batch_size = 8
     sequence_length = 327680 // 8
-    model_complexity = 48
+    model_complexity = 32
 
     if torch.cuda.is_available() and torch.cuda.get_device_properties(torch.cuda.current_device()).total_memory < 10e9:
         batch_size //= 2
@@ -42,14 +43,14 @@ def main():
 
     learning_rate = 0.0006
     learning_rate_decay_steps = 10000
-    learning_rate_decay_rate = 0.98
+    learning_rate_decay_rate = 0.96
 
     leave_one_out = None
 
     clip_gradient_norm = 3
 
     validation_length = None
-    validation_interval = 2000
+    validation_interval = 5000
 
     ex.observers.append(FileStorageObserver(logdir))
 

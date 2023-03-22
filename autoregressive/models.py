@@ -40,7 +40,7 @@ class ConvStack(nn.Module):
         self.fc = nn.Sequential(
             nn.Linear((output_features // 8) *
                       (input_features // 4), output_features),
-            nn.Dropout(0.25)
+            nn.Dropout(0.15)
         )
 
     def forward(self, mel):
@@ -77,7 +77,7 @@ class AR_Transcriber(nn.Module):
         )
 
         self.class_embedding = nn.Embedding(N_STATE, 2)
-        self.loss_weights = torch.Tensor([1, 1, 1, 2]).to(DEFAULT_DEVICE)
+        self.loss_weights = torch.Tensor([1, 1, 1, 3]).to(DEFAULT_DEVICE)
 
     def forward(self, mel, gt_label=None):
         '''acoustic_out = torch.zeros(mel.shape[0], mel.shape[1], self.model_complexity_conv * 16, device=mel.device)
