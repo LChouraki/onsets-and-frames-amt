@@ -57,7 +57,7 @@ class PianoRollAudioDataset(Dataset):
         result['audio'] = result['audio'].float().div_(32768.0)
         result['onset'] = (result['label'] >= 3).float()
         result['offset'] = (result['label'] == 1).float()
-        result['frame'] = (result['label'] > 1).float()
+        result['frame'] = (result['label'] > 0).float()
 
         return result
 
@@ -96,8 +96,8 @@ class PianoRollAudioDataset(Dataset):
         """
 
         saved_data_path = audio_path.replace('.wav', '+%i.pt' % pitch_shift)
-        if os.path.exists(saved_data_path):
-            return torch.load(saved_data_path)
+        '''if os.path.exists(saved_data_path):
+            return torch.load(saved_data_path)'''
 
         scale_factor = 2 ** (pitch_shift / 12)
         audio, sr = soundfile.read(audio_path, dtype='int16')
@@ -117,19 +117,19 @@ class PianoRollAudioDataset(Dataset):
         midi = np.loadtxt(tsv_path, delimiter='\t', skiprows=1)
 
         for onset, offset, note, vel in midi:
-            left = int(round((onset / scale_factor) * SAMPLE_RATE / HOP_LENGTH))
+            left = int((onset / scale_factor) * SAMPLE_RATE / HOP_LENGTH)
             onset_right = min(n_steps, left + HOPS_IN_ONSET)
-            frame_right = int(round((offset / scale_factor) * SAMPLE_RATE / HOP_LENGTH))
+            frame_right = int((offset / scale_factor) * SAMPLE_RATE / HOP_LENGTH)
             frame_right = min(n_steps, frame_right)
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
             f = int(note) + pitch_shift - MIN_MIDI + 2
-            '''if label[left:onset_right, f] != 0:
+            if label[left:onset_right, f] != 0:
                 label[left:onset_right, f] = 4
-            else:'''
-            label[left:onset_right, f] = 3
-            label[onset_right:frame_right, f] = 2
-            label[frame_right:offset_right, f] = 1
+            else:
+                label[left:onset_right, f] = 3
+                label[onset_right:frame_right, f] = 2
+                label[frame_right:offset_right, f] = 1
 
         '''absl_label = midi[:, :3]
         absl_label[:, 2] = midi[:, 2] - MIN_MIDI
