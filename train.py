@@ -74,7 +74,7 @@ def main():
     loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
     if resume_iteration is None:
-        model = AR_Transcriber(N_MELS, MAX_MIDI - MIN_MIDI + 1 + 4, model_complexity).to(device) if train_with == "ar" \
+        model = AR_Transcriber(N_MELS, MAX_MIDI - MIN_MIDI + 1 + 2 * PITCH_SHIFT, model_complexity).to(device) if train_with == "ar" \
            else OnsetsAndFrames(N_MELS, MAX_MIDI - MIN_MIDI + 1, model_complexity).to(device)
 
         optimizer = torch.optim.Adam(model.parameters(), learning_rate)

@@ -29,7 +29,7 @@ class PianoRollAudioDataset(Dataset):
         for group in groups:
             for input_files in tqdm(self.files(group), desc='Loading group %s' % group):
                 if group == 'train':
-                    for i in range(-2, 3):
+                    for i in range(-PITCH_SHIFT, PITCH_SHIFT + 1):
                         self.data.append(self.load(*input_files, i))
                 else:
                     self.data.append(self.load(*input_files, 0))
@@ -57,7 +57,7 @@ class PianoRollAudioDataset(Dataset):
         result['audio'] = result['audio'].float().div_(32768.0)
         result['onset'] = (result['label'] >= 3).float()
         result['offset'] = (result['label'] == 1).float()
-        result['frame'] = (result['label'] > 0).float()
+        result['frame'] = (result['label'] > 1).float()
 
         return result
 
@@ -108,7 +108,7 @@ class PianoRollAudioDataset(Dataset):
         audio = torch.ShortTensor(audio)
         audio_length = len(audio)
 
-        n_keys = MAX_MIDI - MIN_MIDI + 1 + 4
+        n_keys = MAX_MIDI - MIN_MIDI + 1 + 2 * PITCH_SHIFT
         n_steps = (audio_length - 1) // HOP_LENGTH + 1
 
         label = torch.zeros(n_steps, n_keys, dtype=torch.uint8)
@@ -117,13 +117,13 @@ class PianoRollAudioDataset(Dataset):
         midi = np.loadtxt(tsv_path, delimiter='\t', skiprows=1)
 
         for onset, offset, note, vel in midi:
-            left = int((onset / scale_factor) * SAMPLE_RATE / HOP_LENGTH)
+            left = int(round((onset / scale_factor) * SAMPLE_RATE / HOP_LENGTH))
             onset_right = min(n_steps, left + HOPS_IN_ONSET)
-            frame_right = int((offset / scale_factor) * SAMPLE_RATE / HOP_LENGTH)
+            frame_right = int(round((offset / scale_factor) * SAMPLE_RATE / HOP_LENGTH))
             frame_right = min(n_steps, frame_right)
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
-            f = int(note) + pitch_shift - MIN_MIDI + 2
+            f = int(note) + pitch_shift - MIN_MIDI + PITCH_SHIFT
             if label[left:onset_right, f] != 0:
                 label[left:onset_right, f] = 4
             else:

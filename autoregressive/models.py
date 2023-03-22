@@ -59,7 +59,7 @@ class AR_Transcriber(nn.Module):
 
         self.input_features = input_features
         self.output_features = output_features
-        self.output_size = MAX_MIDI - MIN_MIDI + 1 + 4
+        self.output_size = MAX_MIDI - MIN_MIDI + 1 + 2 * PITCH_SHIFT
         self.model_complexity_conv = model_complexity_conv
         self.model_complexity_lstm = model_complexity_lstm
 
@@ -120,7 +120,7 @@ class AR_Transcriber(nn.Module):
         result = torch.argmax(result, dim=-1)
 
         predictions = {'onset': result >= 3,
-                       'frame': result > 0}
+                       'frame': result > 1}
         return predictions, loss
 
     def lm_model_step(self, acoustic_out, hidden, prev_out):
