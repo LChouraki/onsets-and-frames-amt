@@ -124,12 +124,12 @@ class PianoRollAudioDataset(Dataset):
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
             f = int(note) + pitch_shift - MIN_MIDI + PITCH_SHIFT
-            if label[left:onset_right, f] != 0:
+            '''if label[left:onset_right, f] != 0:
                 label[left:onset_right, f] = 4
-            else:
-                label[left:onset_right, f] = 3
-                label[onset_right:frame_right, f] = 2
-                label[frame_right:offset_right, f] = 1
+            else:'''
+            label[left:onset_right, f] = 3
+            label[onset_right:frame_right, f] = 2
+            label[frame_right:offset_right, f] = 1
 
         '''absl_label = midi[:, :3]
         absl_label[:, 2] = midi[:, 2] - MIN_MIDI
