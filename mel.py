@@ -53,7 +53,7 @@ class STFT(torch.nn.Module):
             input_data = input_data.unsqueeze(1)
             input_data = F.pad(
                 input_data,
-                (int(self.filter_length * 0.5), int(self.filter_length * 0.5), 0, 0),
+                (int(self.filter_length * 0), int(self.filter_length * 1), 0, 0),
                 mode='reflect')
             input_data = input_data.squeeze(1)
 

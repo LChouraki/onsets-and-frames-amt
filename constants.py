@@ -2,7 +2,10 @@ import torch
 
 
 SAMPLE_RATE = 16000
-HOP_MS = 16
+WINDOW_MS = 16
+HOP_MS = 8
+
+FILTER_LENGTH = SAMPLE_RATE * WINDOW_MS // 1000
 HOP_LENGTH = SAMPLE_RATE * HOP_MS // 1000
 ONSET_LENGTH = SAMPLE_RATE * HOP_MS // 1000
 OFFSET_LENGTH = SAMPLE_RATE * HOP_MS // 1000
@@ -16,7 +19,7 @@ N_STATE = 4  # change for 2cnn
 N_MELS = 131
 MEL_FMIN = 30
 MEL_FMAX = SAMPLE_RATE // 2
-FILTER_LENGTH = 512
+
 
 DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-DEFAULT_DEVICE = 'mps' if torch.backends.mps.is_available() else DEFAULT_DEVICE
+DEFAULT_DEVICE = 'cpu' if torch.backends.mps.is_available() else DEFAULT_DEVICE

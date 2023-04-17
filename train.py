@@ -23,14 +23,14 @@ ex = Experiment('train_transcriber')
 def main():
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    iterations = 250000
-    resume_iteration = None
+    iterations = 500000
+    resume_iteration = 30000
     checkpoint_interval = 5000
 
     train_on = 'GuitarSet'
     train_with = 'ar'
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
-    #logdir = 'runs/transcriber-' + train_with + '-32_16_pitchshift_(1,3)_131'
+    logdir = 'runs/transcriber-ar-230414-171041'
     
     batch_size = 8
     sequence_length = 327680 // 8
@@ -42,7 +42,7 @@ def main():
         print(f'Reducing batch size to {batch_size} and sequence_length to {sequence_length} to save memory')
 
     learning_rate = 0.0006
-    learning_rate_decay_steps = 10000
+    learning_rate_decay_steps = 50000
     learning_rate_decay_rate = 0.96
 
     leave_one_out = None

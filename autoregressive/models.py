@@ -12,35 +12,37 @@ class ConvStack(nn.Module):
     def __init__(self, input_features, output_features):
         super().__init__()
 
-        # input is batch_size * 1 channel * frames * input_features
         self.cnn = nn.Sequential(
-            nn.ZeroPad2d((1, 1, 2, 0)),
             # layer 0
+            nn.ZeroPad2d((1, 1, 2, 0)),
             nn.Conv2d(1, output_features // 16, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 1  # change for 2cnn
             nn.ZeroPad2d((1, 1, 2, 0)),
             nn.Conv2d(output_features // 16, output_features //
-                      16, (3, 3), padding=0),
+                    16, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 16),
             nn.ReLU(),
             # layer 2
+
             nn.MaxPool2d((1, 2)),
             nn.Dropout(0.1),
             nn.ZeroPad2d((1, 1, 2, 0)),
+
             nn.Conv2d(output_features // 16,
-                      output_features // 8, (3, 3), padding=0),
+                    output_features // 8, (3, 3), padding=0),
             nn.BatchNorm2d(output_features // 8),
             nn.ReLU(),
             # layer 3
             nn.MaxPool2d((1, 2)),
             nn.Dropout(0.1),
         )
+        
         self.fc = nn.Sequential(
             nn.Linear((output_features // 8) *
                       (input_features // 4), output_features),
-            nn.Dropout(0.15)
+            nn.Dropout(0.25)
         )
 
     def forward(self, mel):
@@ -77,7 +79,7 @@ class AR_Transcriber(nn.Module):
         )
 
         self.class_embedding = nn.Embedding(N_STATE, 2)
-        self.loss_weights = torch.Tensor([1, 1, 1, 1]).to(DEFAULT_DEVICE)
+        self.loss_weights = torch.Tensor([1, 1, 1, 3]).to(DEFAULT_DEVICE)
 
     def forward(self, mel, gt_label=None):
         '''acoustic_out = torch.zeros(mel.shape[0], mel.shape[1], self.model_complexity_conv * 16, device=mel.device)
