@@ -79,8 +79,11 @@ class AR_Transcriber(nn.Module):
         )
 
         self.class_embedding = nn.Embedding(N_STATE, 2)
-        self.loss_weights = torch.Tensor([1, 1, 1, 3]).to(DEFAULT_DEVICE)
-
+        if N_STATE == 4:
+            self.loss_weights = torch.Tensor([1, 1, 1, 3]).to(DEFAULT_DEVICE)
+        elif N_STATE == 3:
+            self.loss_weights = torch.Tensor([1, 1, 3]).to(DEFAULT_DEVICE)
+            
     def forward(self, mel, gt_label=None):
         '''acoustic_out = torch.zeros(mel.shape[0], mel.shape[1], self.model_complexity_conv * 16, device=mel.device)
         for i in range(mel.shape[1] - 7):
@@ -121,8 +124,12 @@ class AR_Transcriber(nn.Module):
         result = torch.softmax(result, dim=-1)
         result = torch.argmax(result, dim=-1)
 
-        predictions = {'onset': result >= 3,
-                       'frame': result > 1}
+        if N_STATE == 4:
+            predictions = {'onset': result >= 3,
+                           'frame': result > 1}
+        elif N_STATE == 3:
+            predictions = {'onset': result >= 2,
+                           'frame': result > 0}
         return predictions, loss
 
     def lm_model_step(self, acoustic_out, hidden, prev_out):

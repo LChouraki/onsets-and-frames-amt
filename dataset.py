@@ -54,10 +54,15 @@ class PianoRollAudioDataset(Dataset):
             result['label'] = data['label'].to(self.device)
             # result['absl_label'] = data['absl_label'].to(self.device)
         
-        result['audio'] = result['audio'].float().div_(32768.0)
-        result['onset'] = (result['label'] >= 3).float()
-        result['offset'] = (result['label'] == 1).float()
-        result['frame'] = (result['label'] > 1).float()
+        if N_STATE == 4:
+            result['audio'] = result['audio'].float().div_(32768.0)
+            result['onset'] = (result['label'] >= 3).float()
+            result['offset'] = (result['label'] == 1).float()
+            result['frame'] = (result['label'] > 1).float()
+        elif N_STATE == 3:
+            result['audio'] = result['audio'].float().div_(32768.0)
+            result['onset'] = (result['label'] == 2).float()
+            result['frame'] = (result['label'] > 0).float()
 
         return result
 
@@ -124,17 +129,15 @@ class PianoRollAudioDataset(Dataset):
             offset_right = min(n_steps, frame_right + HOPS_IN_OFFSET)
 
             f = int(note) + pitch_shift - MIN_MIDI + PITCH_SHIFT
-            '''if label[left:onset_right, f] != 0:
-                label[left:onset_right, f] = 4
-            else:'''
-            label[left:onset_right, f] = 3
-            label[onset_right:frame_right, f] = 2
-            label[frame_right:offset_right, f] = 1
+            
+            if N_STATE == 4:
+                label[left:onset_right, f] = 3
+                label[onset_right:frame_right, f] = 2
+                label[frame_right:offset_right, f] = 1
 
-        '''absl_label = midi[:, :3]
-        absl_label[:, 2] = midi[:, 2] - MIN_MIDI
-        absl_label = absl_label[(absl_label[:, 1] - absl_label[:, 0]) > 0]''' # remove annotation error (offset or reonset in the pianoroll)
-
+            elif N_STATE == 3:
+                label[left:onset_right, f] = 2
+                label[onset_right:frame_right, f] = 1
         data = dict(path=audio_path, audio=audio, label=label) #, absl_label=torch.FloatTensor(absl_label))
         torch.save(data, saved_data_path)
         return data
