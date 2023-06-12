@@ -30,7 +30,6 @@ def main():
     train_on = 'GuitarSet'
     train_with = 'ar'
     logdir = 'runs/transcriber-' + train_with + '-' + datetime.now().strftime('%y%m%d-%H%M%S')
-    logdir = 'runs/transcriber-ar-230417-154659'
     
     batch_size = 8
     sequence_length = 327680 // 8

@@ -24,7 +24,7 @@ CHUNK = HOP_LENGTH
 def get_buffer_and_transcribe(model, q):
 
     transcriber = OnlineTranscriber(model)
-    with MicrophoneStream(RATE, CHUNK, 1, CHANNELS) as stream:
+    with MicrophoneStream(RATE, CHUNK, 0, CHANNELS) as stream:
         on_pitch = []
         time_buff = np.zeros(5000)
         index = 0
@@ -107,7 +107,7 @@ def main(model_file):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_file', type=str, default='../runs/transcriber-ar-230316-132647/model-96000.pt')
+    parser.add_argument('--model_file', type=str, default='./runs/path/to/model.pt')
     args = parser.parse_args()
 
     midiout = rtmidi.MidiOut()

@@ -5,6 +5,7 @@ import torch
 from PIL import Image
 from torch.nn.modules.module import _addindent
 
+
 class EarlyStopping:
     def __init__(self, patience=1, min_delta=0):
         self.patience = patience

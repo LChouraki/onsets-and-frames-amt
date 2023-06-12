@@ -53,7 +53,6 @@ class ConvStack(nn.Module):
         return x
 
 
-
 class AR_Transcriber(nn.Module):
     def __init__(self, input_features, output_features,
                  model_complexity_conv=48, model_complexity_lstm=48):
